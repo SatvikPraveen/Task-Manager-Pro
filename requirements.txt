@@ -1,0 +1,18 @@
+# Requires Python >=3.10
+# Core Libraries
+flask # will help if planning to upgrade it to a Flask-based web version
+
+# Typing and Data Structures
+typing-extensions
+
+# Advanced Type Checking (optional but recommended)
+mypy
+
+# Testing
+pytest
+
+# Optional JSON validation (bonus improvement)
+pydantic
+
+# Optional enhancements (bonus)
+rich             # For colorful CLI output (if you want pretty task display)
