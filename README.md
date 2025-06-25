@@ -218,6 +218,30 @@ python main.py toggle-email-reminders
 
 ---
 
+### 🕒 Scheduled Email Reminders with Cron (Optional)
+
+To enable daily due-date email `reminders`:
+
+1. Open your systems's crontab:
+
+   ```bash
+   crontab -e
+   ```
+
+   press `i` to enable Insert mode.
+
+2. Add the following line to run daily at 9:00 AM:
+
+   ```bash
+   0 9 * * * /path/to/venv/bin/python /path/to/task-manager-pro/send_reminders.py
+   ```
+
+   Replace `/path/to/venv` and `/path/to/task-manager-pro` with your actual path.
+
+3. Save and exit --> press `esc` and then, `:wq`.
+
+📝 Make sure `.env` is properly configured with Gmail app password support as shown in `.env.template.`
+
 ## 🧰 Developer Notes
 
 - All methods include **type hints**
