@@ -233,7 +233,7 @@ To enable daily due-date email `reminders`:
 2. Add the following line to run daily at 9:00 AM:
 
    ```bash
-   0 9 * * * /bin/bash -c 'source /path/to/venv/bin/activate && python /path/to/task-manager-pro/send_reminders.py >> /path/to/task-manager-pro/logs/cron.log 2>&1'
+   0 9 * * * /path/to/venv/bin/activate && python /path/to/task-manager-pro/send_reminders.py >> /path/to/task-manager-pro/logs/cron.log 2>&1'
    ```
 
    Replace `/path/to/venv` and `/path/to/task-manager-pro` with your actual path.
