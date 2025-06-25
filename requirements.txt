@@ -1,6 +1,7 @@
 # Requires Python >=3.10
 # Core Libraries
 flask # will help if planning to upgrade it to a Flask-based web version
+python-dotenv
 
 # Typing and Data Structures
 typing-extensions

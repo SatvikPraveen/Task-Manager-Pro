@@ -36,6 +36,14 @@ def main():
     # Login (optional for future user features)
     login_parser = subparsers.add_parser("login", help="Login as user")
     login_parser.add_argument("--username", required=True)
+    login_parser.add_argument("--email", help="Optional email for reminders")
+
+    # Send Reminders Manually
+    send_reminders_parser = subparsers.add_parser("send-reminders", help="Manually send email reminders (if enabled)")
+
+    # Toggle Email Reminders
+    toggle_email_parser = subparsers.add_parser("toggle-email-reminders", help="Toggle email reminder preference")
+
 
     # Logout
     logout_parser = subparsers.add_parser("logout", help="Log out current user")
@@ -57,13 +65,19 @@ def main():
         manager.delete_task(args.id)
 
     elif args.command == "login":
-        manager.login(args.username)
+        manager.login(args.username, args.email)
     
     elif args.command == "logout":
         manager.logout()
     
     elif args.command == "update-task":
         manager.update_task(args.id, args.title, args.desc, args.due)
+    
+    elif args.command == "send-reminders":
+        manager.send_due_reminders()
+    
+    elif args.command == "toggle-email-reminders":
+        manager.toggle_email_reminders()
 
     else:
         parser.print_help()

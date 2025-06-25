@@ -15,6 +15,8 @@ It serves as a production-grade reference project for mastering Python fundament
 - 🔍 View Task Details with `--verbose`
 - 📊 Task Summary Report with `--summary`
 - 🗑️ Delete Tasks by ID
+- 📧 **Hybrid Due-Date Reminders** (terminal + optional email)
+- 🔄 **Toggle Email Reminders** anytime
 - 🚪 Logout functionality
 - 🧱 JSON-based Persistent Storage
 - 🧰 Modular Architecture with Composition & Decorators
@@ -48,6 +50,16 @@ It serves as a production-grade reference project for mastering Python fundament
    pip install -r requirements.txt
    ```
 
+4. **Setup `.env` for Email Reminders (Optional)**
+   Create a `.env` file in the project root:
+
+```bash
+EMAIL_USER=your_email@example.com
+EMAIL_PASS=your_app_password
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+```
+
 ## 📦 Project Structure
 
 ```bash
@@ -64,8 +76,10 @@ task_manager_pro/
 ├── utils/                    # 🛠️ Utility functions and reusable components
 │   ├── decorators.py         # 🌀 Logging decorator for function calls
 │   ├── logger_context.py     # 📋 Context manager for logging sessions to console
+│   ├── emailer.py            # 📬 Utility class for sending email reminders using SMTP
 │   └── session.py            # 🔒 Session management for tracking logged-in user
 ├── tests/                    # 🧪 Unit tests
+│   ├── test_email.py         # ✅ Tests for Sending Email Reminders
 │   ├── test_tasks.py         # ✅ Tests for Task creation and behavior
 │   └── test_users.py         # ✅ Tests for User login and edge cases
 └── requirements.txt          # 📜 List of project dependencies
@@ -85,19 +99,19 @@ task_manager_pro/
 ### ▶ Login
 
 ```bash
-python main.py login --username satvik
+python main.py login --username <user-name>
 ```
 
 ### ➕ Add a Task
 
 ```bash
-python main.py add-task --title "Read book" --desc "Read 30 pages" --due "2025-07-01"
+python main.py add-task --title <task-title> --desc <task-description> --due <due-date(yyyy-mm-dd)>
 ```
 
 After adding a task, the system displays unique ID:
 
 ```bash
-✅ Task 'Read book' added.
+✅ Task <task-title> added.
 🆔 Task ID: 7e0a3457d1ba4d57a3c9c58e12e6e7a4
 ```
 
@@ -106,6 +120,14 @@ After adding a task, the system displays unique ID:
 ```bash
 python main.py complete-task --id <task_id>
 ```
+
+### 🔄 Toggle Email Reminders
+
+```bash
+python main.py toggle-email-reminders
+```
+
+Use this to enable or disable email-based due-date reminders anytime.
 
 ### 📋 List Tasks
 
@@ -116,6 +138,7 @@ python main.py list-tasks --filter all --verbose --pending
 - `--filter` options: `all`, `completed`, `pending`
 - `--verbose`: show task descriptions
 - `--summary`: show task count statistics
+- Displays real-time due-date reminders for logged-in user (console + optional email)
 
 ### 🗑️ Delete a Task
 
@@ -140,6 +163,7 @@ Make sure you’re in the virtual environment and inside the root project direct
 - All methods include **type hints**
 - Decorators are used for action logging
 - Custom context manager for session logging
+- Clean OOP desgin with modular components
 - Fully modular and extensible codebase
 - Abstraction via `StorageInterface` allows for future storage backends
 

@@ -27,3 +27,7 @@ env/
 
 # Docker (optional)
 *.tar
+
+.env
+
+tasks.json
