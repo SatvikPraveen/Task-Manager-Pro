@@ -233,7 +233,7 @@ To enable daily due-date email `reminders`:
 2. Add the following line to run daily at 9:00 AM:
 
    ```bash
-   0 9 * * * /path/to/venv/bin/python /path/to/task-manager-pro/send_reminders.py
+   0 9 * * * /bin/bash -c 'source /path/to/venv/bin/activate && python /path/to/task-manager-pro/send_reminders.py >> /path/to/task-manager-pro/logs/cron.log 2>&1'
    ```
 
    Replace `/path/to/venv` and `/path/to/task-manager-pro` with your actual path.
@@ -241,6 +241,69 @@ To enable daily due-date email `reminders`:
 3. Save and exit --> press `esc` and then, `:wq`.
 
 📝 Make sure `.env` is properly configured with Gmail app password support as shown in `.env.template.`
+
+Great! Here's a clean and professional section you can add to your `README.md` under a new heading like:
+
+---
+
+## ⏰ Scheduled Email Reminders (with CRON)
+
+To enable daily email reminders for due tasks, follow these steps:
+
+### ✅ Step 1: Ensure Requirements
+
+Ensure you’ve configured your `.env` file with:
+
+```env
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password  # Use an app-specific password if using Gmail
+```
+
+Also, ensure you’ve installed dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 🛠 Step 2: Add CRON Job (macOS/Linux)
+
+1. Open your crontab editor:
+
+   ```bash
+   crontab -e
+   ```
+
+2. Add the following line (adjust the path to match your system):
+
+   ```cron
+   0 9 * * * /bin/bash -c 'source /Users/satvikpraveen/Desktop/task-manager-pro/venv/bin/activate && python /Users/satvikpraveen/Desktop/task-manager-pro/send_reminders.py >> /Users/satvikpraveen/Desktop/task-manager-pro/logs/cron.log 2>&1'
+   ```
+
+   This schedules the job to run **daily at 9:00 AM** and logs output to a file.
+
+---
+
+### 📁 Directory Notes
+
+- `logs/cron.log`: Captures cron output and errors (recommended to keep in `.gitignore`)
+
+- `send_reminders.py`: Script that automatically emails users with pending tasks due today
+
+---
+
+### 🚫 Disabling CRON
+
+To remove or edit the scheduled job:
+
+```bash
+crontab -e
+```
+
+Then delete or modify the task.
+
+---
 
 ## 🧰 Developer Notes
 
