@@ -146,6 +146,23 @@ python main.py list-tasks --filter all --verbose --pending
 python main.py delete-task --id <task_id>
 ```
 
+### 🚪 Logout
+
+```bash
+python main.py logout
+```
+
+Ends the current session and clears the saved login.
+Use this when switching users or exiting securely.
+
+### 🔔 Optional: Send All Due Reminders
+
+```bash
+python main.py send-due-reminders
+```
+
+Sends email reminders (if enabled) to all users who have tasks due today or earlier.
+
 ---
 
 ## 🧪 Running Tests
