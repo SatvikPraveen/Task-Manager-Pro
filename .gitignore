@@ -33,3 +33,6 @@ env/
 tasks.json
 
 /logs
+
+# temporary wrapper for cron testing
+run_reminders.sh
