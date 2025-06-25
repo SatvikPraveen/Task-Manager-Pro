@@ -187,18 +187,30 @@ To use **email-based reminders**, you'll need to:
 
 2. **Create a `.env` file** in your project root:
 
-```env
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password_here
-SMTP_SERVER=smtp.gmail.com
-SMTP_PORT=465
-```
+   ```env
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASS=your_app_password_here
+   SMTP_SERVER=smtp.gmail.com
+   SMTP_PORT=465
+   ```
 
-> ✅ `EMAIL_PASS` should be your **App Password**, _not_ your actual Gmail password.
+   Optionally, you can start by copying the provided `.env.template`:
+
+   ```bash
+   cp .env.template .env
+   ```
+
+   > ✅ `EMAIL_PASS` should be your **App Password**, _not_ your actual Gmail password.
 
 3. The app automatically loads `.env` values and uses them when sending reminders.
 
-4. You can toggle email reminders at any time using:
+4. Confirm `.gitignore` already contains:
+
+   ```bash
+   .env
+   ```
+
+5. You can toggle email reminders at any time using:
 
 ```bash
 python main.py toggle-email-reminders
