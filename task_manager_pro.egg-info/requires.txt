@@ -1,0 +1,6 @@
+flask
+python-dotenv
+typing-extensions
+pytest
+pydantic
+rich

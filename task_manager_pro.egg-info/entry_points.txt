@@ -1,0 +1,2 @@
+[console_scripts]
+task-manager = task_manager_pro.cli:main
