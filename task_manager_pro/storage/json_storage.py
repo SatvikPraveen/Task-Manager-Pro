@@ -1,7 +1,7 @@
 import json
 import os
 from typing import Dict, Any
-from storage.interface import StorageInterface
+from task_manager_pro.storage.interface import StorageInterface
 
 class JSONStorage(StorageInterface):
     def __init__(self, filename="tasks.json"):
