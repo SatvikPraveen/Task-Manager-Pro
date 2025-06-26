@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 class StorageInterface(ABC):
     @abstractmethod
     def load_data(self) -> Dict[str, Any]:
-        """Load all data (users, tasks, metadata) from storage."""
+        """Load all data (users, tasks, metadata) from task_manager_pro.storage."""
         pass
 
     @abstractmethod

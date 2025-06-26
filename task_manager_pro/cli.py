@@ -1,6 +1,6 @@
 import argparse
-from services.task_manager import TaskManager
-from storage.json_storage import JSONStorage
+from task_manager_pro.services.task_manager import TaskManager
+from task_manager_pro.storage.json_storage import JSONStorage
 
 def main():
     parser = argparse.ArgumentParser(description="📝 Task Manager PRO CLI")

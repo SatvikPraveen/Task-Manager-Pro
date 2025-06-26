@@ -1,12 +1,12 @@
 import uuid
 from typing import Optional
-from models.task import Task
-from models.user import User
-from storage.interface import StorageInterface
-from utils.decorators import log_action
-from utils.session import save_session, load_session, clear_session
+from task_manager_pro.models.task import Task
+from task_manager_pro.models.user import User
+from task_manager_pro.storage.interface import StorageInterface
+from task_manager_pro.utils.decorators import log_action
+from task_manager_pro.utils.session import save_session, load_session, clear_session
 from datetime import datetime
-from utils.emailer import send_email_reminder
+from task_manager_pro.utils.emailer import send_email_reminder
 
 
 class TaskManager:

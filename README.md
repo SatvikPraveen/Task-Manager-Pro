@@ -317,14 +317,23 @@ Delete or update the corresponding task.
 
 ---
 
-## 🐳 Docker (Optional)
+## 🐳 Docker Usage
 
-To build and run the app using Docker:
+### 🧱 Build the Docker Image
 
 ```bash
 docker build -t task-manager-pro .
-docker run -it --rm -v "$(pwd):/app" task-manager-pro
 ```
+
+### ▶ Run a Task Command
+
+```bash
+docker run -it task-manager-pro login --username satvik
+docker run -it task-manager-pro add-task --title "Read book" --desc "30 pages" --due 2025-06-26
+```
+
+> 📝 `tasks.json` is internal to the container and intentionally not volume-mounted.
+> For persistence outside Docker, consider extending this with bind mounts.
 
 ---
 
@@ -338,6 +347,12 @@ To suggest features or report bugs, open an issue.
 ## 📜 License
 
 This project is licensed under the MIT License.
+
+---
+
+## 🧠 Author
+
+Built with ❤️ by [Satvik Praveen](https://github.com/SatvikPraveen)
 
 ---
 

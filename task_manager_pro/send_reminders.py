@@ -1,7 +1,7 @@
 # send_reminders.py
 import datetime
-from storage.json_storage import JSONStorage
-from utils.emailer import send_email_reminder
+from task_manager_pro.storage.json_storage import JSONStorage
+from task_manager_pro.utils.emailer import send_email_reminder
 import sys
 
 # Ensure print statements are flushed immediately (for cron logs)
