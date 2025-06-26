@@ -1,0 +1,15 @@
+LICENSE
+README.md
+pyproject.toml
+task_manager_pro/__init__.py
+task_manager_pro/cli.py
+task_manager_pro/send_reminders.py
+task_manager_pro.egg-info/PKG-INFO
+task_manager_pro.egg-info/SOURCES.txt
+task_manager_pro.egg-info/dependency_links.txt
+task_manager_pro.egg-info/entry_points.txt
+task_manager_pro.egg-info/requires.txt
+task_manager_pro.egg-info/top_level.txt
+tests/test_email.py
+tests/test_tasks.py
+tests/test_users.py

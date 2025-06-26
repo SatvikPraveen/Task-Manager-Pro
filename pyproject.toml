@@ -1,0 +1,25 @@
+[project]
+name = "task-manager-pro"
+version = "0.1.0"
+description = "CLI-based task manager with email reminder support"
+authors = [{ name = "Satvik Praveen" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask",
+    "python-dotenv",
+    "typing-extensions",
+    "pytest",
+    "pydantic",
+    "rich"
+]
+
+[project.scripts]
+task-manager = "task_manager_pro.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["task_manager_pro"]
