@@ -64,26 +64,37 @@ SMTP_PORT=587
 
 ```bash
 task_manager_pro/
-├── main.py                    # 🎯 CLI entrypoint using argparse
-├── models/                   # 📦 Data models (domain objects)
-│   ├── task.py               # 📝 Task class with properties and methods
-│   └── user.py               # 👤 User class (basic login representation)
-├── services/                 # 🧠 Core business logic layer
-│   └── task_manager.py       # 🔧 TaskManager class for handling task/user actions
-├── storage/                  # 💾 Persistence layer
-│   ├── interface.py          # 🧩 Abstract Base Class for storage backends
-│   └── json_storage.py       # 📂 JSON-based implementation of StorageInterface
-├── utils/                    # 🛠️ Utility functions and reusable components
-│   ├── decorators.py         # 🌀 Logging decorator for function calls
-│   ├── logger_context.py     # 📋 Context manager for logging sessions to console
-│   ├── emailer.py            # 📬 Utility class for sending email reminders using SMTP
-│   └── session.py            # 🔒 Session management for tracking logged-in user
-├── tests/                    # 🧪 Unit tests
-│   ├── test_email.py         # ✅ Tests for Sending Email Reminders
-│   ├── test_tasks.py         # ✅ Tests for Task creation and behavior
-│   └── test_users.py         # ✅ Tests for User login and edge cases
-└── requirements.txt          # 📜 List of project dependencies
+├── __init__.py
+├── cli.py                   # 🎯 CLI entrypoint (registered as `task-manager`)
+├── send_reminders.py        # 🔔 Standalone script for daily reminder emails
+├── models/                  # 📦 Task and User data models
+│   ├── __init__.py
+│   ├── task.py
+│   └── user.py
+├── services/                # 🧠 Core logic — TaskManager class
+│   ├── __init__.py
+│   └── task_manager.py
+├── storage/                 # 💾 JSON-based persistent storage
+│   ├── __init__.py
+│   ├── interface.py
+│   └── json_storage.py
+├── utils/                   # 🛠️ Utilities for decorators, email, session, etc.
+│   ├── __init__.py
+│   ├── decorators.py
+│   ├── emailer.py
+│   ├── logger_context.py
+│   └── session.py
+tests/
+├── test_email.py
+├── test_tasks.py
+└── test_users.py
+requirements.txt
+pyproject.toml
+README.md
+.env.template
 ```
+
+🧱 The project uses a modular, package-based layout to support clean imports, scalability, and production readiness.
 
 - **models/**: Data classes for `Task` and `User`
 - **services/**: Core logic with `TaskManager`
@@ -94,18 +105,30 @@ task_manager_pro/
 
 ---
 
-## 💻 Usage
+## 💻 CLI Usage (via task-manager)
+
+Once installed with:
+
+```bash
+pip install -e .
+```
+
+You can access the app using the command:
+
+```bash
+task-manager
+```
 
 ### ▶ Login
 
 ```bash
-python main.py login --username <user-name>
+task-manager login --username <user-name>
 ```
 
 ### ➕ Add a Task
 
 ```bash
-python main.py add-task --title <task-title> --desc <task-description> --due <due-date(yyyy-mm-dd)>
+task-manager add-task --title <task-title> --desc <task-description> --due <due-date(yyyy-mm-dd)>
 ```
 
 After adding a task, the system displays unique ID:
@@ -118,13 +141,13 @@ After adding a task, the system displays unique ID:
 ### ✅ Complete a Task
 
 ```bash
-python main.py complete-task --id <task_id>
+task-manager complete-task --id <task_id>
 ```
 
 ### 🔄 Toggle Email Reminders
 
 ```bash
-python main.py toggle-email-reminders
+task-manager toggle-email-reminders
 ```
 
 Use this to enable or disable email-based due-date reminders anytime.
@@ -132,7 +155,7 @@ Use this to enable or disable email-based due-date reminders anytime.
 ### 📋 List Tasks
 
 ```bash
-python main.py list-tasks --filter all --verbose --pending
+task-manager list-tasks --filter all --verbose --pending
 ```
 
 - `--filter` options: `all`, `completed`, `pending`
@@ -143,13 +166,13 @@ python main.py list-tasks --filter all --verbose --pending
 ### 🗑️ Delete a Task
 
 ```bash
-python main.py delete-task --id <task_id>
+task-manager delete-task --id <task_id>
 ```
 
 ### 🚪 Logout
 
 ```bash
-python main.py logout
+task-manager logout
 ```
 
 Ends the current session and clears the saved login.
@@ -158,7 +181,7 @@ Use this when switching users or exiting securely.
 ### 🔔 Optional: Send All Due Reminders
 
 ```bash
-python main.py send-due-reminders
+task-manager send-due-reminders
 ```
 
 Sends email reminders (if enabled) to all users who have tasks due today or earlier.
@@ -218,48 +241,22 @@ python main.py toggle-email-reminders
 
 ---
 
-### 🕒 Scheduled Email Reminders with Cron (Optional)
+## ⏰ Scheduled Email Reminders (CRON)
 
-To enable daily due-date email `reminders`:
+You can automate daily due-date email reminders using `cron`.
 
-1. Open your systems's crontab:
+### ✅ Step 1: Environment Setup
 
-   ```bash
-   crontab -e
-   ```
-
-   press `i` to enable Insert mode.
-
-2. Add the following line to run daily at 9:00 AM:
-
-   ```bash
-   0 9 * * * /path/to/venv/bin/activate && python /path/to/task-manager-pro/send_reminders.py >> /path/to/task-manager-pro/logs/cron.log 2>&1'
-   ```
-
-   Replace `/path/to/venv` and `/path/to/task-manager-pro` with your actual path.
-
-3. Save and exit --> press `esc` and then, `:wq`.
-
-📝 Make sure `.env` is properly configured with Gmail app password support as shown in `.env.template.`
-
-Great! Here's a clean and professional section you can add to your `README.md` under a new heading like:
-
----
-
-## ⏰ Scheduled Email Reminders (with CRON)
-
-To enable daily email reminders for due tasks, follow these steps:
-
-### ✅ Step 1: Ensure Requirements
-
-Ensure you’ve configured your `.env` file with:
+Ensure your `.env` file in the project root is properly configured:
 
 ```env
 EMAIL_USER=your_email@gmail.com
-EMAIL_PASS=your_app_password  # Use an app-specific password if using Gmail
+EMAIL_PASS=your_app_password  # App password, not your Gmail login
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
 ```
 
-Also, ensure you’ve installed dependencies:
+Confirm all dependencies are installed:
 
 ```bash
 pip install -r requirements.txt
@@ -269,39 +266,43 @@ pip install -r requirements.txt
 
 ### 🛠 Step 2: Add CRON Job (macOS/Linux)
 
-1. Open your crontab editor:
+1. Open the crontab editor:
 
    ```bash
    crontab -e
    ```
 
-2. Add the following line (adjust the path to match your system):
+2. Add this line to run the reminder script daily at 9:00 AM:
 
    ```cron
-   0 9 * * * /bin/bash -c 'source /Users/satvikpraveen/Desktop/task-manager-pro/venv/bin/activate && python /Users/satvikpraveen/Desktop/task-manager-pro/send_reminders.py >> /Users/satvikpraveen/Desktop/task-manager-pro/logs/cron.log 2>&1'
+   0 9 * * * /bin/bash -c 'source /path/to/venv/bin/activate && python /path/to/project/task_manager_pro/send_reminders.py >> /path/to/project/logs/cron.log 2>&1'
    ```
 
-   This schedules the job to run **daily at 9:00 AM** and logs output to a file.
+   > 🔁 Replace the paths with your actual project and virtual environment location.
+
+   Make sure your `.env` is set up and `.gitignore` excludes it.
+
+3. Save and exit (press `ESC`, then type `:wq` and hit `Enter`).
 
 ---
 
-### 📁 Directory Notes
+### 📁 Notes
 
-- `logs/cron.log`: Captures cron output and errors (recommended to keep in `.gitignore`)
-
-- `send_reminders.py`: Script that automatically emails users with pending tasks due today
+- **Logs** are saved to: `logs/cron.log`
+- **Script used**: `task_manager_pro/send_reminders.py`
+- The cron job respects the `.env` config and only sends reminders if due tasks exist.
 
 ---
 
-### 🚫 Disabling CRON
+### 🧹 Disable CRON Job
 
-To remove or edit the scheduled job:
+To stop or edit the job:
 
 ```bash
 crontab -e
 ```
 
-Then delete or modify the task.
+Delete or update the corresponding task.
 
 ---
 
