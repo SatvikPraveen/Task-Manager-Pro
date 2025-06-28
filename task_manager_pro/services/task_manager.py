@@ -1,3 +1,11 @@
+"""
+services/task_manager.py
+
+Defines the TaskManager class, the core controller for managing tasks and users in the CLI application.
+Responsible for user authentication, task CRUD operations, reminder notifications, and data persistence.
+Uses decorators for logging, JSON/DB storage interface, and optional email reminders for due tasks.
+"""
+
 import uuid
 from typing import Optional
 from task_manager_pro.models.task import Task
@@ -11,17 +19,26 @@ from task_manager_pro.utils.emailer import send_email_reminder
 
 class TaskManager:
     def __init__(self, storage: StorageInterface):
+        """
+        Initializes the TaskManager with a storage backend.
+
+        Args:
+            storage (StorageInterface): Abstract storage handler (e.g., JSON, SQLite).
+        """
         self.storage = storage
         self.data = self.storage.load_data()
-        username = load_session()
+        username = load_session()  # Restore session if any
         self.current_user: Optional[User] = None
         if username:
             user_data = next((u for u in self.data["users"] if u["username"] == username), None)
             if user_data:
                 self.current_user = User(**user_data)
 
-
     def _print_due_reminders(self):
+        """
+        Checks and prints tasks that are due or overdue.
+        Also sends an email reminder if user's email is configured.
+        """
         today = datetime.today().date()
         due_tasks = [
             t for t in self.data["tasks"]
@@ -35,7 +52,7 @@ class TaskManager:
             for t in due_tasks:
                 print(f"  🔔 {t['title']} — Due: {t['due_date']}")
 
-        # 📬 Optional email reminder
+        # Send optional email reminder
         if due_tasks and self.current_user._email:
             subject = "🔔 Task Due Reminder"
             message = "\n".join([f"{t['title']} — Due: {t['due_date']}" for t in due_tasks])
@@ -48,10 +65,15 @@ class TaskManager:
             except Exception as e:
                 print(f"⚠️ Could not send email reminder: {e}")
 
-
     @log_action
     def login(self, username: str, email: Optional[str] = None):
-        # Basic login/creation
+        """
+        Logs in the user, or creates one if not already registered.
+
+        Args:
+            username (str): Username.
+            email (Optional[str]): Optional email for reminder setup.
+        """
         user_data = next((u for u in self.data["users"] if u["username"] == username), None)
 
         if user_data:
@@ -75,9 +97,16 @@ class TaskManager:
         print(f"✅ Logged in as {self.current_user.username}")
         self._print_due_reminders()
 
-
     @log_action
     def add_task(self, title: str, desc: str, due: str):
+        """
+        Adds a new task for the current user.
+
+        Args:
+            title (str): Task title.
+            desc (str): Task description.
+            due (str): Due date in 'YYYY-MM-DD'.
+        """
         if not self.current_user:
             print("❌ Please login first.")
             return
@@ -93,9 +122,17 @@ class TaskManager:
         print(f"✅ Task '{title}' added.")
         print(f"🆔 Task ID: {task.id}")
 
-
     @log_action
     def update_task(self, task_id: str, title: str = None, desc: str = None, due: str = None):
+        """
+        Updates an existing task's title, description, or due date.
+
+        Args:
+            task_id (str): Unique task identifier.
+            title (Optional[str]): New title.
+            desc (Optional[str]): New description.
+            due (Optional[str]): New due date.
+        """
         if not self.current_user:
             print("❌ Please login first.")
             return
@@ -114,9 +151,14 @@ class TaskManager:
 
         print("❌ Task not found or does not belong to current user.")
 
-
     @log_action
     def mark_task_complete(self, task_id: str):
+        """
+        Marks a task as completed.
+
+        Args:
+            task_id (str): Unique task identifier.
+        """
         for task in self.data["tasks"]:
             if task["id"] == task_id:
                 task["completed"] = True
@@ -125,9 +167,16 @@ class TaskManager:
                 return
         print("❌ Task not found.")
 
-
     @log_action
-    def list_tasks(self, filter_status: str, verbose: bool=False, summary: bool=False):
+    def list_tasks(self, filter_status: str, verbose: bool = False, summary: bool = False):
+        """
+        Lists tasks based on filter and verbosity settings.
+
+        Args:
+            filter_status (str): Filter by status — 'all', 'completed', or 'pending'.
+            verbose (bool): Show description for each task.
+            summary (bool): Show overall task count breakdown.
+        """
         tasks = self.data["tasks"]
         if self.current_user:
             tasks = [t for t in tasks if t["user"] == self.current_user.username]
@@ -154,9 +203,14 @@ class TaskManager:
         
         self._print_due_reminders()
 
-
     @log_action
     def delete_task(self, task_id: str):
+        """
+        Deletes a task by ID.
+
+        Args:
+            task_id (str): Unique task identifier.
+        """
         for i, task in enumerate(self.data["tasks"]):
             if task["id"] == task_id:
                 deleted = self.data["tasks"].pop(i)
@@ -165,9 +219,11 @@ class TaskManager:
                 return
         print("❌ Task not found.")
 
-
     @log_action
     def logout(self):
+        """
+        Logs out the current user and clears session.
+        """
         if self.current_user:
             print(f"👋 Logged out {self.current_user.username}")
             self.current_user = None
@@ -175,17 +231,22 @@ class TaskManager:
         else:
             print("⚠️ No user is currently logged in.")
 
-
     @log_action
     def send_due_reminders(self):
+        """
+        Triggers due task reminder check and optional email dispatch.
+        """
         if not self.current_user:
             print("❌ Please login first.")
             return 
         self._print_due_reminders()
 
-
     @log_action
     def toggle_email_reminders(self):
+        """
+        Toggles email reminder setting for the current user.
+        Also updates the setting in persistent storage.
+        """
         if not self.current_user:
             print("❌ Please login first.")
             return
@@ -193,7 +254,6 @@ class TaskManager:
         updated_value = self.current_user.toggle_email_reminders()
         print(f"🔧 Email reminders {'enabled' if updated_value else 'disabled'}.")
 
-        # Updated stored user data
         for u in self.data["users"]:
             if u["username"] == self.current_user.username:
                 u["email_reminders_enabled"] = updated_value

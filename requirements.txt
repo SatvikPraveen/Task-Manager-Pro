@@ -1,19 +1,22 @@
-# Requires Python >=3.10
-# Core Libraries
-flask # will help if planning to upgrade it to a Flask-based web version
-python-dotenv
+# requirements.txt
 
-# Typing and Data Structures
-typing-extensions
+# ✅ Requires Python >=3.10 (as specified in pyproject.toml)
 
-# Advanced Type Checking (optional but recommended)
-mypy
+# 🧱 Core Libraries
+flask              # Enables upgrade path to a Flask-based web interface (optional)
+python-dotenv      # Loads environment variables from .env files (used in email config)
 
-# Testing
-pytest
+# 🔠 Typing and Data Structures
+typing-extensions  # Adds backported and experimental type hints for compatibility
 
-# Optional JSON validation (bonus improvement)
-pydantic
+# 🔍 Optional Advanced Type Checking
+mypy               # Static type checker for Python to catch bugs early (optional)
 
-# Optional enhancements (bonus)
-rich             # For colorful CLI output (if you want pretty task display)
+# 🧪 Testing Framework
+pytest             # Used to write and run unit tests in /tests directory
+
+# 📦 Optional JSON Validation
+pydantic           # Enables data validation (e.g., user/task schema enforcement)
+
+# 🌈 CLI Display Enhancements
+rich               # Adds colorized and styled CLI output (e.g., task tables, status)

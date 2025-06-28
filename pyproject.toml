@@ -1,25 +1,31 @@
+# 📦 Project Metadata
 [project]
-name = "task-manager-pro"
-version = "0.1.0"
-description = "CLI-based task manager with email reminder support"
-authors = [{ name = "Satvik Praveen" }]
-readme = "README.md"
-requires-python = ">=3.10"
+name = "task-manager-pro"  # Name of the package
+version = "0.1.0"  # Initial version
+description = "CLI-based task manager with email reminder support"  # Short project summary
+authors = [{ name = "Satvik Praveen" }]  # List of authors
+readme = "README.md"  # Markdown file used as long description on PyPI
+requires-python = ">=3.10"  # Minimum required Python version
+
+# 📚 Dependencies required to run the project
 dependencies = [
-    "flask",
-    "python-dotenv",
-    "typing-extensions",
-    "pytest",
-    "pydantic",
-    "rich"
+    "flask",  # Web framework (optional extension)
+    "python-dotenv",  # For loading environment variables from .env
+    "typing-extensions",  # For backward-compatible typing features
+    "pytest",  # Testing framework
+    "pydantic",  # For future data validation (optional)
+    "rich"  # For pretty-printing and enhanced terminal outputs
 ]
 
+# 🚀 CLI entry point definition
 [project.scripts]
-task-manager = "task_manager_pro.cli:main"
+task-manager = "task_manager_pro.cli:main"  # Allows running `task-manager` from terminal
 
+# 🔧 Build system configuration (PEP 517)
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0"]  # Build tool requirement
+build-backend = "setuptools.build_meta"  # Backend to build the project
 
+# 📁 Tells setuptools where to find the source code
 [tool.setuptools]
-packages = ["task_manager_pro"]
+packages = ["task_manager_pro"]  # Main package directory to include

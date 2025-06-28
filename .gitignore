@@ -1,38 +1,41 @@
-# Byte-compiled / cache files
+# 🐍 Python bytecode/cache files
 __pycache__/
 *.py[cod]
 *.pyo
 
-# Virtual environment
+# 🧪 Virtual environments (common folder names)
 venv/
 env/
 
-# Logs
+# 📝 Log files
 *.log
 
-# pytest cache
+# 🧪 pytest cache
 .pytest_cache/
 
-# mypy cache
+# 📐 mypy type checker cache
 .mypy_cache/
 
-# VSCode config
+# 💻 VSCode project settings
 .vscode/
 
-# Mac OS metadata
+# 🍎 macOS metadata (created automatically by Finder)
 .DS_Store
 
-# Jupyter Notebook checkpoints (if any)
+# 📓 Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
-# Docker (optional)
+# 🐳 Docker artifacts (optional: e.g., saved images)
 *.tar
 
+# 🔐 Environment variable file (sensitive credentials)
 .env
 
+# 📦 Application state data (used by JSONStorage)
 tasks.json
 
+# 📁 Custom logging directory
 /logs
 
-# temporary wrapper for cron testing
+# 🕒 Temporary script used for testing cron-based reminders
 run_reminders.sh

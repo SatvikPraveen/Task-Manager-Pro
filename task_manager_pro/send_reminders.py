@@ -1,34 +1,47 @@
-# send_reminders.py
+'''
+send_reminders.py
+
+This script sends daily email reminders to users who have due or overdue tasks.
+Designed to be run as a scheduled job (e.g., via cron).
+Ensures reminders are not sent multiple times in a day and logs output for tracking.
+'''
+
 import datetime
 from task_manager_pro.storage.json_storage import JSONStorage
 from task_manager_pro.utils.emailer import send_email_reminder
 import sys
 
-# Ensure print statements are flushed immediately (for cron logs)
+# Ensure print statements are immediately flushed (important for cron log visibility)
 sys.stdout.reconfigure(line_buffering=True)
 
+# Load stored task/user data from JSON file
 storage = JSONStorage("tasks.json")
 data = storage.load_data()
 
+# Get today's date for comparison
 today = datetime.date.today()
 print(f"[{datetime.datetime.now()}] Starting scheduled reminders...\n")
 
-updated = False  # Track if we modify anything
+# Flag to track whether any data was updated (to decide if we need to save)
+updated = False
 
+# Iterate through all users in the storage
 for user_data in data.get("users", []):
     username = user_data["username"]
     email = user_data.get("email")
     reminders_enabled = user_data.get("email_reminders_enabled", False)
     last_reminder_date = user_data.get("last_reminder_date")
 
+    # Skip users without email or if they have reminders disabled
     if not email or not reminders_enabled:
         continue
 
-    # Skip if already reminded today
+    # Skip if reminder already sent today
     if last_reminder_date == str(today):
         print(f"[{username}] 💤 Reminder already sent today.")
         continue
 
+    # Filter due/overdue tasks for this user
     due_tasks = [
         t for t in data.get("tasks", [])
         if t["user"] == username
@@ -36,6 +49,7 @@ for user_data in data.get("users", []):
         and datetime.datetime.strptime(t["due_date"], "%Y-%m-%d").date() <= today
     ]
 
+    # If due tasks exist, send reminder and update last reminder date
     if due_tasks:
         subject = "⏰ Daily Task Reminder"
         body = "\n".join([f"{t['title']} — Due: {t['due_date']}" for t in due_tasks])
@@ -47,5 +61,6 @@ for user_data in data.get("users", []):
     else:
         print(f"[{username}] ✅ No due tasks.")
 
+# Persist changes only if we updated reminder timestamps
 if updated:
     storage.save_data(data)
