@@ -1,4 +1,8 @@
-# 📝 Task Manager PRO — Modular Python CLI for Tasks
+# 📝 Task Manager PRO — Modular Python CLI for Tasks  
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Issues](https://img.shields.io/github/issues/SatvikPraveen/task-manager-pro)](https://github.com/SatvikPraveen/task-manager-pro/issues)
+
 
 **Task Manager PRO** is a fully modular, object-oriented, command-line task management tool built with Python.  
 It serves as a production-grade reference project for mastering Python fundamentals and professional development best practices.
@@ -346,7 +350,7 @@ To suggest features or report bugs, open an issue.
 
 ## 📜 License
 
-This project is licensed under the MIT License.
+This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
 
 ---
 
