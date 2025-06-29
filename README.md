@@ -1,8 +1,13 @@
 # 📝 Task Manager PRO — Modular Python CLI for Tasks
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Issues](https://img.shields.io/github/issues/SatvikPraveen/task-manager-pro)](https://github.com/SatvikPraveen/task-manager-pro/issues)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-darkgreen.svg)](https://www.python.org/)
+[![Issues](https://img.shields.io/github/issues/SatvikPraveen/task-manager-pro?color=yellowgreen)](https://github.com/SatvikPraveen/task-manager-pro/issues)
+[![CLI: Argparse](https://img.shields.io/badge/CLI-Argparse-brightgreen.svg)](https://docs.python.org/3/library/argparse.html)
+[![Tested with Pytest](https://img.shields.io/badge/Tested%20With-Pytest-purple.svg)](https://docs.pytest.org/)
+[![Docker Ready](https://img.shields.io/badge/Docker-Ready-blueviolet.svg)](https://www.docker.com/)
+[![Email Reminder](https://img.shields.io/badge/Email%20Reminder-SMTP-ff6f00.svg)](#)
+[![Type Hints](https://img.shields.io/badge/Type%20Hints-Mypy-informational.svg)](http://mypy-lang.org/)
 
 **Task Manager PRO** is a fully modular, object-oriented, command-line task management tool built with Python.  
 It serves as a production-grade reference project for mastering Python fundamentals and professional development best practices.
