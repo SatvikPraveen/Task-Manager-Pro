@@ -40,7 +40,7 @@ It serves as a production-grade reference project for mastering Python fundament
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/SatvikPraveen/task-manager-pro.git
+   git clone https://github.com/SatvikPraveen/Task-Manager-Pro.git
    cd task-manager-pro
 
    ```
