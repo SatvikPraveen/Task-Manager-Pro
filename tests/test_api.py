@@ -189,7 +189,7 @@ def test_create_task_unauthenticated(client):
             "due_date": "2025-12-31",
         },
     )
-    assert response.status_code == 403  # Forbidden (no credentials)
+    assert response.status_code == 401  # Unauthorized (no credentials)
 
 
 def test_list_tasks(client):
