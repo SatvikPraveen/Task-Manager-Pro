@@ -8,7 +8,7 @@
 [![CI/CD](https://github.com/SatvikPraveen/Task-Manager-Pro/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/SatvikPraveen/Task-Manager-Pro/actions/workflows/ci-cd.yml)
 [![Docker Ready](https://img.shields.io/badge/Docker-Ready-blueviolet.svg)](https://www.docker.com/)
 [![Security](https://img.shields.io/badge/Security-Bandit%20Enforced-critical.svg)](#-security-features)
-[![Type Hints](https://img.shields.io/badge/Type%20Hints-Mypy%20(informational)-informational.svg)](http://mypy-lang.org/)
+[![Type Hints](https://img.shields.io/badge/Type%20Hints-Mypy%20Enforced-informational.svg)](http://mypy-lang.org/)
 
 **Task Manager PRO** is a **production-grade distributed task management system** combining a Python CLI tool with a modern REST API.  
 It demonstrates mastery of full-stack development: SQLAlchemy ORM, FastAPI REST endpoints, JWT authentication, comprehensive testing, and CI/CD automation.

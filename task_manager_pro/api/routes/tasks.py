@@ -5,8 +5,8 @@ Task management endpoints for CRUD operations.
 """
 
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import Optional
-from task_manager_pro.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
+from typing import Any, Dict, Optional
+from task_manager_pro.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse, TaskPriority
 from task_manager_pro.api.dependencies import get_current_user, get_storage
 from task_manager_pro.storage.sql_storage import SQLStorage
 
@@ -43,7 +43,7 @@ async def create_task(
             title=task.title,
             description=task.description,
             due_date=task.due_date.strftime("%Y-%m-%d"),
-            priority=task.priority,
+            priority=TaskPriority(task.priority),
             completed=task.completed,
             created_at=task.created_at.isoformat(),
             updated_at=task.updated_at.isoformat(),
@@ -86,7 +86,7 @@ async def list_tasks(
                 title=task.title,
                 description=task.description,
                 due_date=task.due_date.strftime("%Y-%m-%d"),
-                priority=task.priority,
+                priority=TaskPriority(task.priority),
                 completed=task.completed,
                 created_at=task.created_at.isoformat(),
                 updated_at=task.updated_at.isoformat(),
@@ -129,7 +129,7 @@ async def get_task(
         title=task.title,
         description=task.description,
         due_date=task.due_date.strftime("%Y-%m-%d"),
-        priority=task.priority,
+        priority=TaskPriority(task.priority),
         completed=task.completed,
         created_at=task.created_at.isoformat(),
         updated_at=task.updated_at.isoformat(),
@@ -163,7 +163,7 @@ async def update_task(
     if not task or task.user_id != user_id:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    update_dict = {}
+    update_dict: Dict[str, Any] = {}
     if task_data.title is not None:
         update_dict["title"] = task_data.title
     if task_data.description is not None:
@@ -174,15 +174,17 @@ async def update_task(
         update_dict["priority"] = task_data.priority.value
     if task_data.completed is not None:
         update_dict["completed"] = task_data.completed
-    
+
     updated_task = storage.update_task(task_id, **update_dict)
-    
+    if not updated_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
     return TaskResponse(
         id=updated_task.id,
         title=updated_task.title,
         description=updated_task.description,
         due_date=updated_task.due_date.strftime("%Y-%m-%d"),
-        priority=updated_task.priority,
+        priority=TaskPriority(updated_task.priority),
         completed=updated_task.completed,
         created_at=updated_task.created_at.isoformat(),
         updated_at=updated_task.updated_at.isoformat(),

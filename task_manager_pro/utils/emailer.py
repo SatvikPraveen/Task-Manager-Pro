@@ -20,7 +20,7 @@ SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")  # Default SMTP se
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))       # Port for STARTTLS (default: 587)
 
 
-def send_email_reminder(to_email: str, subject: str, body: str):
+def send_email_reminder(to_email: str, subject: str, body: str) -> None:
     """
     Sends an email reminder using SMTP.
 
@@ -29,6 +29,10 @@ def send_email_reminder(to_email: str, subject: str, body: str):
         subject (str): Subject line of the email.
         body (str): Main body content of the email.
     """
+    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
+        print("❌ Failed to send email: EMAIL_USER and EMAIL_PASS must be set in the environment")
+        return
+
     try:
         # Construct the email message
         msg = MIMEMultipart()

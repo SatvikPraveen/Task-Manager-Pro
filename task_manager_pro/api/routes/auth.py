@@ -70,7 +70,13 @@ async def login(credentials: UserLogin):
     
     # Get user
     user = storage.get_user_by_username(credentials.username)
-    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     # Create token
     access_token_expires = timedelta(minutes=30)
     access_token = create_access_token(

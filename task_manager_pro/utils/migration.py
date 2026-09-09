@@ -56,7 +56,7 @@ def migrate_json_to_sql(json_file: str = "tasks.json", dry_run: bool = False):
                 print(f"  ✓ Would create user: {username} ({email})")
             else:
                 try:
-                    user = sql_storage.create_user(
+                    sql_storage.create_user(
                         username=username,
                         password=default_password,
                         email=email

@@ -7,12 +7,15 @@ Ensures reminders are not sent multiple times in a day and logs output for track
 '''
 
 import datetime
-from task_manager_pro.storage.json_storage import JSONStorage
-from task_manager_pro.utils.emailer import send_email_reminder
+import io
 import sys
 
+from task_manager_pro.storage.json_storage import JSONStorage
+from task_manager_pro.utils.emailer import send_email_reminder
+
 # Ensure print statements are immediately flushed (important for cron log visibility)
-sys.stdout.reconfigure(line_buffering=True)
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(line_buffering=True)
 
 # Load stored task/user data from JSON file
 storage = JSONStorage("tasks.json")

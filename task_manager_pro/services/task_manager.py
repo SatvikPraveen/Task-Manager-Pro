@@ -123,7 +123,7 @@ class TaskManager:
         print(f"🆔 Task ID: {task.id}")
 
     @log_action
-    def update_task(self, task_id: str, title: str = None, desc: str = None, due: str = None):
+    def update_task(self, task_id: str, title: Optional[str] = None, desc: Optional[str] = None, due: Optional[str] = None):
         """
         Updates an existing task's title, description, or due date.
 

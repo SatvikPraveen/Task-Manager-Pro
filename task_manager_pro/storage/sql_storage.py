@@ -149,7 +149,7 @@ class SQLStorage(StorageInterface):
             db.close()
     
     # Task operations
-    def create_task(self, user_id: str, title: str, description: str, due_date: str,
+    def create_task(self, user_id: str, title: str, description: Optional[str], due_date: str,
                    priority: str = "medium") -> TaskModel:
         """
         Create a new task.

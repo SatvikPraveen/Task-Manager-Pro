@@ -41,12 +41,7 @@ jobs:
 
       - name: Lint with mypy
         run: |
-          # NOTE: mypy currently reports ~80 pre-existing type errors (mostly
-          # SQLAlchemy Column[T] vs T mismatches in the API/storage layers).
-          # Fixing them is tracked as a follow-up; until then this step is
-          # informational only and does NOT gate the build. Do not read the
-          # "Type Hints" badge in the README as "mypy-clean".
-          mypy task_manager_pro --ignore-missing-imports --no-error-summary || echo "Type checking issues (informational, non-blocking — see step comment)"
+          mypy task_manager_pro --ignore-missing-imports --no-error-summary
 
       - name: Run tests with pytest
         run: |

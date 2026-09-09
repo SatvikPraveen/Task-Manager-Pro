@@ -7,7 +7,7 @@ Provides database engine, session factory, and Base class for all models.
 
 import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session
 from typing import Generator
 
 # Database URL (defaults to SQLite in project root)
@@ -24,7 +24,8 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Declarative base for model definitions
-Base = declarative_base()
+class Base(DeclarativeBase):
+    pass
 
 
 def get_db() -> Generator[Session, None, None]:

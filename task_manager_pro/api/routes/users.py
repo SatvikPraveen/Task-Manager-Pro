@@ -4,6 +4,8 @@ api/routes/users.py
 User management endpoints for profile and settings.
 """
 
+from typing import Any, Dict
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from task_manager_pro.schemas.user import UserResponse, UserUpdate
 from task_manager_pro.api.dependencies import get_current_user, get_storage
@@ -58,7 +60,7 @@ async def update_current_user(
     Returns:
         UserResponse: Updated user information
     """
-    update_dict = {}
+    update_dict: Dict[str, Any] = {}
     if user_data.email is not None:
         update_dict["email"] = user_data.email
     if user_data.email_reminders_enabled is not None:
@@ -100,7 +102,9 @@ async def toggle_email_reminders(
     
     new_status = not user.email_reminders_enabled
     updated_user = storage.update_user(user_id, email_reminders_enabled=new_status)
-    
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     return UserResponse(
         id=updated_user.id,
         username=updated_user.username,

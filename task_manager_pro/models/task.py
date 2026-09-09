@@ -33,7 +33,7 @@ class Task:
         return self._id
 
     @id.setter
-    def id(self, value: str):
+    def id(self, value: Optional[str]):
         """Sets the task ID."""
         self._id = value
 
