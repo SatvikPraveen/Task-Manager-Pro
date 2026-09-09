@@ -74,9 +74,11 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    # Defaults to loopback-only; set HOST=0.0.0.0 explicitly for
+    # container/production use to avoid binding all interfaces by default.
     uvicorn.run(
         "task_manager_pro.api.main:app",
-        host="0.0.0.0",
-        port=8000,
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "8000")),
         reload=True,
     )
