@@ -279,6 +279,13 @@ task-manager logout
 
 ## 🧪 Testing
 
+Install test/dev tooling (not part of the runtime dependencies):
+
+```bash
+pip install -r requirements_dev.txt
+# or: pip install -e ".[test]"
+```
+
 Run the comprehensive test suite:
 
 ```bash

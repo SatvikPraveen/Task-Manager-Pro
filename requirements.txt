@@ -1,38 +1,32 @@
 # requirements.txt
-
+#
+# Runtime dependencies only. For test/dev tooling (pytest, mypy, bandit, ...)
+# see requirements_dev.txt.
+#
 # ✅ Requires Python >=3.10 (as specified in pyproject.toml)
 
 # 🧱 Core Libraries
-python-dotenv      # Loads environment variables from .env files (used in email config)
+python-dotenv>=1.2,<2.0      # Loads environment variables from .env files (used in email config)
 
 # 🌐 REST API Framework
-fastapi            # Modern, fast web framework for building APIs
-uvicorn[standard]  # ASGI server for running FastAPI
+fastapi>=0.100,<1.0          # Modern, fast web framework for building APIs
+uvicorn[standard]>=0.23,<1.0 # ASGI server for running FastAPI
 
 # 🔠 Typing and Data Structures
-typing-extensions  # Adds backported and experimental type hints for compatibility
+typing-extensions>=4.9,<5.0  # Adds backported and experimental type hints for compatibility
 
 # 🗄️ Database ORM and Migrations
-sqlalchemy         # SQL toolkit and ORM for database operations
-alembic            # Lightweight database migration tool for SQLAlchemy
+sqlalchemy>=2.0,<3.0         # SQL toolkit and ORM for database operations
+alembic>=1.13,<2.0           # Lightweight database migration tool for SQLAlchemy
 
 # 🔐 Security
-bcrypt             # Password hashing library for secure credential storage
-pyjwt              # JSON Web Token library for authentication
-
-# 🔍 Optional Advanced Type Checking
-mypy               # Static type checker for Python to catch bugs early (optional)
-
-# 🧪 Testing Framework
-pytest             # Used to write and run unit tests in /tests directory
-pytest-cov         # Coverage reporting for pytest
-pytest-asyncio     # Async test support for pytest
-httpx              # HTTP client for testing FastAPI endpoints
+bcrypt>=4.0,<6.0             # Password hashing library for secure credential storage
+pyjwt>=2.8,<3.0              # JSON Web Token library for authentication
 
 # 📦 Data Validation
-pydantic           # Data validation using Python type hints
-pydantic-settings  # Pydantic settings management
-email-validator    # Email validation for pydantic EmailStr type
+pydantic>=2.5,<3.0           # Data validation using Python type hints
+pydantic-settings>=2.0,<3.0  # Pydantic settings management
+email-validator>=2.0,<3.0    # Email validation for pydantic EmailStr type
 
 # 🌈 CLI Display Enhancements
-rich               # Adds colorized and styled CLI output (e.g., task tables, status)
+rich>=13.0,<16.0             # Adds colorized and styled CLI output (e.g., task tables, status)

@@ -9,20 +9,27 @@ requires-python = ">=3.10"  # Minimum required Python version
 
 # 📚 Dependencies required to run the project
 dependencies = [
-    "python-dotenv",  # For loading environment variables from .env
-    "typing-extensions",  # For backward-compatible typing features
-    "pydantic",  # Data validation using type hints
-    "pydantic-settings",  # Pydantic settings management
-    "rich",  # For pretty-printing and enhanced terminal outputs
-    "sqlalchemy",  # SQL toolkit and ORM
-    "alembic",  # Database migration tool
-    "bcrypt",  # Password hashing library
-    "pyjwt",  # JSON Web Token library
-    "fastapi",  # Modern web framework for REST API
-    "uvicorn[standard]",  # ASGI server for FastAPI
-    "pytest",  # Testing framework
-    "pytest-cov",  # Coverage reporting for pytest
-    "httpx",  # HTTP client for testing
+    "python-dotenv>=1.2,<2.0",  # For loading environment variables from .env
+    "typing-extensions>=4.9,<5.0",  # For backward-compatible typing features
+    "pydantic>=2.5,<3.0",  # Data validation using type hints
+    "pydantic-settings>=2.0,<3.0",  # Pydantic settings management
+    "email-validator>=2.0,<3.0",  # Required for pydantic's EmailStr type
+    "rich>=13.0,<16.0",  # For pretty-printing and enhanced terminal outputs
+    "sqlalchemy>=2.0,<3.0",  # SQL toolkit and ORM
+    "alembic>=1.13,<2.0",  # Database migration tool
+    "bcrypt>=4.0,<6.0",  # Password hashing library
+    "pyjwt>=2.8,<3.0",  # JSON Web Token library
+    "fastapi>=0.100,<1.0",  # Modern web framework for REST API
+    "uvicorn[standard]>=0.23,<1.0",  # ASGI server for FastAPI
+]
+
+# 🧪 Optional dependency groups
+[project.optional-dependencies]
+test = [
+    "pytest>=8.0,<10.0",  # Testing framework
+    "pytest-cov>=5.0,<8.0",  # Coverage reporting for pytest
+    "pytest-asyncio>=0.23,<2.0",  # Async test support for pytest
+    "httpx>=0.27,<1.0",  # HTTP client for testing
 ]
 
 # 🚀 CLI entry point definition

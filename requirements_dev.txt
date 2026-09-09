@@ -1,0 +1,18 @@
+# requirements_dev.txt
+#
+# Dev/test tooling on top of the runtime dependencies. Install with:
+#   pip install -r requirements.txt -r requirements_dev.txt
+# or, equivalently, `pip install -e ".[test]"` for the pytest/httpx subset
+# that's also declared in pyproject.toml's [project.optional-dependencies].
+
+-r requirements.txt
+
+# 🧪 Testing
+pytest>=8.0,<10.0            # Unit/integration test framework
+pytest-cov>=5.0,<8.0         # Coverage reporting for pytest
+pytest-asyncio>=0.23,<2.0    # Async test support for pytest
+httpx>=0.27,<1.0             # HTTP client used by FastAPI's TestClient
+
+# 🔍 Static analysis / security (also run in CI)
+mypy>=1.10,<3.0              # Static type checker
+bandit>=1.7,<2.0             # Security linter
