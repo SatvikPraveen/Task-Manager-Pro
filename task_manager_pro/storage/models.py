@@ -7,9 +7,14 @@ Replaces JSON storage with relational database tables.
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from task_manager_pro.storage.database import Base
 import uuid
+
+
+def _utcnow() -> datetime:
+    """Timezone-aware replacement for the deprecated datetime.utcnow()."""
+    return datetime.now(timezone.utc)
 
 
 class UserModel(Base):
@@ -22,8 +27,8 @@ class UserModel(Base):
     password_hash = Column(String(255), nullable=False)
     email = Column(String(255), nullable=True, index=True)
     email_reminders_enabled = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     
     # Relationship
     tasks = relationship("TaskModel", back_populates="user", cascade="all, delete-orphan")
@@ -44,8 +49,8 @@ class TaskModel(Base):
     due_date = Column(DateTime, nullable=False, index=True)
     completed = Column(Boolean, default=False, index=True)
     priority = Column(String(20), default="medium")  # low, medium, high
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=_utcnow)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow)
     completed_at = Column(DateTime, nullable=True)
     
     # Relationship

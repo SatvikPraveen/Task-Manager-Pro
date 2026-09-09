@@ -8,7 +8,7 @@ Replaces JSON storage with relational database support.
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from task_manager_pro.storage.interface import StorageInterface
 from task_manager_pro.storage.database import SessionLocal, init_db
 from task_manager_pro.storage.models import UserModel, TaskModel
@@ -141,7 +141,7 @@ class SQLStorage(StorageInterface):
                 elif key == "password" and value:
                     user.password_hash = hash_password(value)
             
-            user.updated_at = datetime.utcnow()
+            user.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(user)
             return user
@@ -233,9 +233,9 @@ class SQLStorage(StorageInterface):
                     setattr(task, key, value)
             
             if "completed" in kwargs and kwargs["completed"] and not task.completed_at:
-                task.completed_at = datetime.utcnow()
-            
-            task.updated_at = datetime.utcnow()
+                task.completed_at = datetime.now(timezone.utc)
+
+            task.updated_at = datetime.now(timezone.utc)
             db.commit()
             db.refresh(task)
             return task

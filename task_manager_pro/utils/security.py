@@ -8,12 +8,22 @@ Provides secure credential handling for authentication.
 import bcrypt
 from typing import Optional
 import jwt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 
 # JWT Configuration
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+_INSECURE_PLACEHOLDER = "your-secret-key-change-in-production"
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY or SECRET_KEY == _INSECURE_PLACEHOLDER:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set (or is still the "
+        "placeholder value). Refusing to start with an insecure JWT "
+        "signing key. Generate one with `openssl rand -hex 32` and set "
+        "it as SECRET_KEY in your environment or .env file."
+    )
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
@@ -60,9 +70,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
     
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

@@ -389,7 +389,7 @@ docker build -t task-manager-pro:latest .
 ```bash
 docker run -p 8000:8000 \
   -e DATABASE_URL="sqlite:///./tasks.db" \
-  -e SECRET_KEY="your-secret-key" \
+  -e SECRET_KEY="$(openssl rand -hex 32)" \
   task-manager-pro:latest
 ```
 
@@ -398,7 +398,7 @@ docker run -p 8000:8000 \
 ```bash
 docker run -p 8000:8000 \
   -e DATABASE_URL="postgresql://user:password@postgres:5432/taskdb" \
-  -e SECRET_KEY="your-secret-key" \
+  -e SECRET_KEY="$(openssl rand -hex 32)" \
   task-manager-pro:latest
 ```
 
@@ -460,11 +460,15 @@ docker run -p 8000:8000 \
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost/taskdb
-SECRET_KEY=your-secret-key-change-in-production
+SECRET_KEY=$(openssl rand -hex 32)   # REQUIRED — app refuses to start without a real value
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_HOURS=0.5
 DEBUG=False
 ```
+
+> ⚠️ `SECRET_KEY` has no insecure fallback. If it's missing or left as a
+> placeholder, the app raises `RuntimeError` at import time instead of
+> starting with a public signing key.
 
 ### Production Deployment
 
