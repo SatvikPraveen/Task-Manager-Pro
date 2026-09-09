@@ -5,19 +5,34 @@ Main FastAPI application file.
 Initializes the API server with all routes, middleware, and configuration.
 """
 
+from contextlib import asynccontextmanager
+from importlib.metadata import version as _pkg_version
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from task_manager_pro.api.routes import auth, tasks, users
 from task_manager_pro.storage.database import init_db
 import os
 
+API_VERSION = _pkg_version("task-manager-pro")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize database tables on application startup."""
+    init_db()
+    print("✓ Database initialized")
+    yield
+
+
 # Create FastAPI app
 app = FastAPI(
     title="Task Manager PRO API",
     description="Advanced task management API with authentication and database support",
-    version="0.2.0",
+    version=API_VERSION,
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
+    lifespan=lifespan,
 )
 
 # Configure CORS (Cross-Origin Resource Sharing)
@@ -29,14 +44,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Initialize database on startup
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database tables on application startup."""
-    init_db()
-    print("✓ Database initialized")
-
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
@@ -50,7 +57,7 @@ async def root():
     """Root endpoint with API information."""
     return {
         "message": "🎯 Task Manager PRO API",
-        "version": "0.2.0",
+        "version": API_VERSION,
         "docs": "/api/docs",
         "openapi_schema": "/api/openapi.json",
     }
@@ -61,7 +68,7 @@ async def health_check():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "version": "0.2.0",
+        "version": API_VERSION,
     }
 
 
