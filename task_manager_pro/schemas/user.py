@@ -57,7 +57,7 @@ class UserResponse(BaseModel):
     updated_at: datetime
 
     @classmethod
-    def from_model(cls, user: Any) -> "UserResponse":
+    def from_model(cls, user: Any) -> UserResponse:
         return cls.model_validate(user)
 
 

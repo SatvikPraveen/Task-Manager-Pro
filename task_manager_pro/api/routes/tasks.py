@@ -7,19 +7,23 @@ Task CRUD with server-side filtering, sorting and pagination.
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from task_manager_pro.analytics import compute_statistics, days_until_due, rank_tasks
 from task_manager_pro.api.dependencies import get_current_user, get_storage
 from task_manager_pro.schemas.task import (
+    NextTasksResponse,
     TaskCreate,
     TaskListResponse,
     TaskPriority,
     TaskResponse,
     TaskSortField,
+    TaskStatsResponse,
     TaskUpdate,
+    TaskWithUrgency,
 )
 from task_manager_pro.storage.sql_storage import SQLStorage
 
@@ -53,7 +57,9 @@ async def list_tasks(
     priority: Optional[TaskPriority] = Query(None, description="Filter by priority"),
     due_before: Optional[date] = Query(None, description="Only tasks due on or before this date"),
     due_after: Optional[date] = Query(None, description="Only tasks due on or after this date"),
-    q: Optional[str] = Query(None, min_length=1, max_length=255, description="Case-insensitive search in title/description"),
+    q: Optional[str] = Query(
+        None, min_length=1, max_length=255, description="Case-insensitive search in title/description"
+    ),
     sort_by: TaskSortField = Query(TaskSortField.DUE_DATE, description="Sort column"),
     sort_desc: bool = Query(False, description="Sort descending"),
     user_id: str = Depends(get_current_user),
@@ -83,6 +89,45 @@ async def list_tasks(
         page=skip // limit + 1,
         page_size=limit,
         pages=math.ceil(total / limit) if total else 0,
+    )
+
+
+@router.get("/stats", response_model=TaskStatsResponse)
+async def task_statistics(
+    user_id: str = Depends(get_current_user),
+    storage: SQLStorage = Depends(get_storage),
+) -> TaskStatsResponse:
+    """
+    Workload summary: counts, overdue load, completion and on-time rates,
+    completion latency, and a per-priority breakdown.
+    """
+    stats = compute_statistics(storage.get_user_tasks(user_id), now=datetime.now(timezone.utc))
+    return TaskStatsResponse.model_validate(stats.to_dict())
+
+
+@router.get("/next", response_model=NextTasksResponse)
+async def next_tasks(
+    limit: int = Query(5, ge=1, le=50, description="How many tasks to recommend"),
+    user_id: str = Depends(get_current_user),
+    storage: SQLStorage = Depends(get_storage),
+) -> NextTasksResponse:
+    """
+    The caller's most urgent pending tasks, ranked by the urgency model in
+    ``task_manager_pro.analytics.urgency`` (priority-weighted logistic decay
+    towards the due date).
+    """
+    now = datetime.now(timezone.utc)
+    ranked = rank_tasks(storage.get_user_tasks(user_id, completed=False), now=now)[:limit]
+    return NextTasksResponse(
+        as_of=now,
+        tasks=[
+            TaskWithUrgency(
+                **TaskResponse.from_model(task).model_dump(),
+                urgency=score,
+                days_until_due=days_until_due(task.due_date, now),
+            )
+            for task, score in ranked
+        ],
     )
 
 

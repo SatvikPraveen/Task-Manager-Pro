@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -94,7 +94,7 @@ class TaskResponse(BaseModel):
         return value
 
     @classmethod
-    def from_model(cls, task: Any) -> "TaskResponse":
+    def from_model(cls, task: Any) -> TaskResponse:
         """Build a response from an ORM ``TaskModel`` (or any duck-typed object)."""
         return cls.model_validate(task)
 
@@ -103,7 +103,45 @@ class TaskListResponse(BaseModel):
     """A page of tasks plus paging metadata."""
 
     total: int = Field(..., description="Total number of tasks matching the filters")
-    tasks: List[TaskResponse]
+    tasks: list[TaskResponse]
     page: int = Field(..., ge=1)
     page_size: int = Field(..., ge=1)
     pages: int = Field(..., ge=0, description="Total number of pages at this page size")
+
+
+class TaskWithUrgency(TaskResponse):
+    """A task annotated with its urgency score (see ``analytics.urgency``)."""
+
+    urgency: float = Field(..., ge=0.0, description="Urgency in (0, priority weight]; 0 when completed")
+    days_until_due: float = Field(..., description="Fractional days until due; negative when overdue")
+
+
+class NextTasksResponse(BaseModel):
+    """The most urgent pending tasks, best first."""
+
+    as_of: datetime
+    tasks: list[TaskWithUrgency]
+
+
+class PriorityBreakdownResponse(BaseModel):
+    total: int
+    completed: int
+    pending: int
+    overdue: int
+
+
+class TaskStatsResponse(BaseModel):
+    """Workload summary for the caller (see ``analytics.stats``)."""
+
+    as_of: datetime
+    total: int
+    completed: int
+    pending: int
+    overdue: int
+    due_today: int
+    due_next_7_days: int
+    completion_rate: float = Field(..., ge=0.0, le=1.0)
+    on_time_rate: Optional[float] = Field(None, ge=0.0, le=1.0)
+    mean_completion_days: Optional[float] = Field(None, ge=0.0)
+    median_completion_days: Optional[float] = Field(None, ge=0.0)
+    by_priority: dict[str, PriorityBreakdownResponse]
