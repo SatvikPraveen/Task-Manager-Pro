@@ -6,19 +6,27 @@ Registration, login and token refresh.
 Login is constant-time with respect to whether the username exists (see
 ``SQLStorage.verify_user_password``), and every failure returns the same
 message so the API does not leak which accounts exist.
+
+Tokens are stateless JWTs, but ``logout`` and ``refresh-token`` revoke the
+presented token's ``jti`` (until its ``exp``) so a leaked or superseded
+token cannot keep being used. Refresh therefore *rotates*: the old token
+dies when the new one is issued.
 """
 
 from __future__ import annotations
 
+import time
 from datetime import timedelta
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
-from task_manager_pro.api.dependencies import get_current_user, get_storage
+from task_manager_pro.api.dependencies import get_storage, get_token_denylist, get_token_payload
 from task_manager_pro.config import get_settings
 from task_manager_pro.schemas.user import TokenResponse, UserLogin, UserRegister, UserResponse, UserWithToken
 from task_manager_pro.storage.sql_storage import SQLStorage
 from task_manager_pro.utils.security import create_access_token
+from task_manager_pro.utils.token_denylist import TokenDenylist
 
 router = APIRouter()
 
@@ -33,6 +41,14 @@ def _issue_token(user_id: str) -> tuple[str, int]:
     minutes = get_settings().access_token_expire_minutes
     token = create_access_token({"sub": user_id}, expires_delta=timedelta(minutes=minutes))
     return token, minutes * 60
+
+
+def _revoke(payload: dict[str, Any], denylist: TokenDenylist) -> None:
+    """Deny the token's jti for the remainder of its lifetime."""
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if isinstance(jti, str) and isinstance(exp, (int, float)):
+        denylist.revoke(jti, float(exp) - time.time())
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -69,16 +85,29 @@ async def login(credentials: UserLogin, storage: SQLStorage = Depends(get_storag
 
 @router.post("/refresh-token", response_model=TokenResponse)
 async def refresh_token(
-    user_id: str = Depends(get_current_user),
+    payload: dict[str, Any] = Depends(get_token_payload),
     storage: SQLStorage = Depends(get_storage),
+    denylist: TokenDenylist = Depends(get_token_denylist),
 ) -> TokenResponse:
     """
-    Issue a fresh access token for the caller of a still-valid bearer token.
+    Rotate the caller's token: issue a fresh one and revoke the presented one.
 
     The token is taken from the ``Authorization`` header, never from the query
     string, so it does not end up in access logs.
     """
+    user_id = str(payload["sub"])
     if storage.get_user(user_id) is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
     token, expires_in = _issue_token(user_id)
+    _revoke(payload, denylist)
     return TokenResponse(access_token=token, token_type="bearer", expires_in=expires_in)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    payload: dict[str, Any] = Depends(get_token_payload),
+    denylist: TokenDenylist = Depends(get_token_denylist),
+) -> Response:
+    """Revoke the presented token immediately. Other sessions are unaffected."""
+    _revoke(payload, denylist)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

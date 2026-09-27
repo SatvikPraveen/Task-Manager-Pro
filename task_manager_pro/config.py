@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     # Sliding-window budget for the unauthenticated auth endpoints, per client.
     auth_rate_limit_per_minute: int = Field(20, ge=1)
 
+    # --- Shared state (rate-limit windows, revoked tokens) ---------------
+    # "memory" is correct for a single process; use "redis" when running
+    # several replicas so limits and revocations are shared between them.
+    shared_state_backend: Literal["memory", "redis"] = "memory"
+    redis_url: Optional[str] = None
+
     # --- Observability ---------------------------------------------------
     log_level: str = "INFO"
     log_json: bool = False

@@ -10,7 +10,7 @@ help: ## Show this help
 
 install: ## Install the package with dev + test extras
 	$(PYTHON) -m pip install -U pip
-	$(PYTHON) -m pip install -e ".[dev,postgres]"
+	$(PYTHON) -m pip install -e ".[dev,postgres,redis]"
 	pre-commit install || true
 
 lint: ## Ruff lint (no changes)

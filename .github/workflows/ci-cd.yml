@@ -73,6 +73,14 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 10
+      redis:
+        image: ${{ matrix.database == 'postgres' && 'redis:7-alpine' || '' }}
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -81,10 +89,12 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
       - name: Install
-        run: pip install -e ".[test,postgres]"
-      - name: Point tests at PostgreSQL
+        run: pip install -e ".[test,postgres,redis]"
+      - name: Point tests at PostgreSQL and Redis
         if: matrix.database == 'postgres'
-        run: echo "DATABASE_URL=postgresql+psycopg://taskmanager:taskmanager@localhost:5432/taskmanager" >> "$GITHUB_ENV"
+        run: |
+          echo "DATABASE_URL=postgresql+psycopg://taskmanager:taskmanager@localhost:5432/taskmanager" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:6379/0" >> "$GITHUB_ENV"
       - name: Apply migrations (PostgreSQL)
         if: matrix.database == 'postgres'
         run: alembic upgrade head

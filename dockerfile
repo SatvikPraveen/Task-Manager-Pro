@@ -6,7 +6,7 @@ WORKDIR /build
 COPY pyproject.toml README.md ./
 COPY task_manager_pro ./task_manager_pro
 RUN pip install --upgrade pip build && python -m build --wheel --outdir /wheels . \
-    && pip wheel --wheel-dir /wheels ".[postgres]"
+    && pip wheel --wheel-dir /wheels ".[postgres,redis]"
 
 # ── Stage 2: runtime ───────────────────────────────────────────────────────
 FROM python:3.12-slim AS runtime
@@ -27,7 +27,7 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=builder /wheels /wheels
-RUN pip install --no-index --find-links=/wheels task-manager-pro[postgres] && rm -rf /wheels
+RUN pip install --no-index --find-links=/wheels "task-manager-pro[postgres,redis]" && rm -rf /wheels
 COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app migrations ./migrations
 COPY --chown=app:app docker/entrypoint.sh /usr/local/bin/entrypoint.sh

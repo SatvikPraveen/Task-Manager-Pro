@@ -1,6 +1,6 @@
 [project]
 name = "task-manager-pro"
-version = "0.4.0"
+version = "0.5.0"
 description = "Task management CLI + REST API with JWT auth, SQL-side querying, urgency analytics, rate limiting and Prometheus metrics"
 authors = [{ name = "Satvik Praveen" }]
 readme = "README.md"
@@ -47,7 +47,7 @@ test = [
     "httpx>=0.27,<1.0",              # FastAPI TestClient transport
 ]
 dev = [
-    "task-manager-pro[test]",
+    "task-manager-pro[test,redis]",
     "ruff>=0.6,<1.0",
     "mypy>=1.10,<3.0",
     "bandit>=1.7,<2.0",
@@ -56,6 +56,9 @@ dev = [
 ]
 postgres = [
     "psycopg[binary]>=3.1,<4.0",
+]
+redis = [
+    "redis>=5.0,<7.0",               # Shared rate-limit windows and token revocation across replicas
 ]
 
 [project.urls]

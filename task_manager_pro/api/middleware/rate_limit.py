@@ -5,10 +5,13 @@ Per-client sliding-window rate limiting for the unauthenticated auth
 endpoints (login/register), which are the natural targets for credential
 stuffing and account-creation abuse.
 
-The limiter is deliberately simple: an in-memory ``deque`` of request
-timestamps per client key. That is correct for a single process; behind
-multiple replicas it degrades to a per-replica limit, which still bounds
-abuse. Swapping in a shared store only requires a new ``RateLimiter``.
+Two interchangeable limiters implement the ``RateLimiter`` protocol:
+
+* ``SlidingWindowRateLimiter`` – an in-memory ``deque`` of timestamps per
+  client key. Correct for a single process; behind N replicas it degrades
+  to N× the configured limit.
+* ``RedisSlidingWindowRateLimiter`` – a sorted set per key, updated by a
+  Lua script so the check-and-record step is atomic across replicas.
 
 Responses that exceed the budget are ``429`` with a ``Retry-After`` header
 and the ``X-RateLimit-*`` headers are set on every limited route so clients
@@ -18,16 +21,25 @@ can back off before hitting the wall.
 from __future__ import annotations
 
 import json
+import math
 import threading
 import time
+import uuid
 from collections import deque
 from collections.abc import Callable
-from typing import Optional
+from typing import Any, Optional, Protocol
 
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 Clock = Callable[[], float]
+
+
+class RateLimiter(Protocol):
+    limit: int
+
+    def check(self, key: str) -> tuple[bool, int, float]:
+        """Record an event for ``key`` if allowed; return ``(allowed, remaining, retry_after_seconds)``."""
 
 
 class SlidingWindowRateLimiter:
@@ -77,6 +89,63 @@ class SlidingWindowRateLimiter:
     def reset(self) -> None:
         with self._lock:
             self._events.clear()
+
+
+# Atomic sliding window: prune, count, and either reject (returning the wait
+# until the oldest event leaves the window) or record the new event.
+_REDIS_SCRIPT = """
+local key    = KEYS[1]
+local now    = tonumber(ARGV[1])
+local window = tonumber(ARGV[2])
+local limit  = tonumber(ARGV[3])
+redis.call('ZREMRANGEBYSCORE', key, 0, now - window)
+local count = redis.call('ZCARD', key)
+if count >= limit then
+  local oldest = redis.call('ZRANGE', key, 0, 0, 'WITHSCORES')
+  return {0, 0, tostring(tonumber(oldest[2]) + window - now)}
+end
+redis.call('ZADD', key, now, ARGV[4])
+redis.call('PEXPIRE', key, ARGV[5])
+return {1, limit - count - 1, '0'}
+"""
+
+
+class RedisSlidingWindowRateLimiter:
+    """Sliding window shared across processes via Redis (requires the ``redis`` package)."""
+
+    def __init__(
+        self,
+        limit: int,
+        window_seconds: float,
+        client: Any,
+        *,
+        prefix: str = "tmp:ratelimit:",
+        clock: Clock = time.time,
+    ) -> None:
+        if limit < 1:
+            raise ValueError("limit must be >= 1")
+        self.limit = limit
+        self.window = float(window_seconds)
+        self._client = client
+        self._prefix = prefix
+        self._clock = clock
+        self._script = client.register_script(_REDIS_SCRIPT)
+        self._ttl_ms = str(math.ceil(self.window * 1000) + 1000)
+
+    def check(self, key: str) -> tuple[bool, int, float]:
+        now = self._clock()
+        allowed, remaining, retry_after = self._script(
+            keys=[self._prefix + key],
+            args=[repr(now), repr(self.window), self.limit, f"{now!r}:{uuid.uuid4().hex}", self._ttl_ms],
+        )
+        return bool(int(allowed)), int(remaining), max(0.0, float(retry_after))
+
+    def reset(self, key: Optional[str] = None) -> None:
+        if key is not None:
+            self._client.delete(self._prefix + key)
+            return
+        for k in self._client.scan_iter(match=self._prefix + "*"):
+            self._client.delete(k)
 
 
 def _client_key(scope: Scope) -> str:

@@ -8,7 +8,7 @@ Middleware stack (outermost first):
     RequestIdMiddleware      correlation ID, timing headers, access log, JSON 500s
     SecurityHeadersMiddleware
     MetricsMiddleware        Prometheus count/latency per route template
-    RateLimitMiddleware      sliding window on /api/auth/{login,register}
+    RateLimitMiddleware      sliding window on /api/auth/{login,register} (memory or Redis)
     CORSMiddleware
     → routers
 """
@@ -26,13 +26,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
-from task_manager_pro.api.middleware import (
-    RateLimitMiddleware,
-    RequestIdMiddleware,
-    SecurityHeadersMiddleware,
-    SlidingWindowRateLimiter,
-)
+from task_manager_pro.api.middleware import RateLimitMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware
 from task_manager_pro.api.routes import auth, tasks, users
+from task_manager_pro.api.state import build_rate_limiter
 from task_manager_pro.config import Settings, get_settings
 from task_manager_pro.observability.logging import configure_logging
 from task_manager_pro.observability.metrics import MetricsMiddleware, metrics_endpoint
@@ -83,7 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     if settings.rate_limit_enabled:
         app.add_middleware(
             RateLimitMiddleware,
-            limiter=SlidingWindowRateLimiter(settings.auth_rate_limit_per_minute, 60.0),
+            limiter=build_rate_limiter(settings),
             paths=RATE_LIMITED_PATHS,
         )
     if settings.metrics_enabled:
