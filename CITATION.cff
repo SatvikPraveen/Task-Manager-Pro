@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Task Manager PRO"
+type: software
+authors:
+  - family-names: Praveen
+    given-names: Satvik
+version: 0.4.0
+date-released: 2026-09-27
+license: GPL-3.0-or-later
+repository-code: "https://github.com/SatvikPraveen/Task-Manager-Pro"
+abstract: >-
+  A task-management REST API and CLI in Python (FastAPI, SQLAlchemy) with
+  JWT authentication, SQL-side querying, a bounded logistic urgency model for
+  task ranking verified by property-based tests, rate limiting, structured
+  logging and Prometheus metrics.
+keywords:
+  - task management
+  - fastapi
+  - sqlalchemy
+  - scheduling
+  - urgency scoring
