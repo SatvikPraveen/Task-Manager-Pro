@@ -23,11 +23,26 @@ import sys
 from datetime import date, datetime, timedelta, timezone
 
 TITLES = [
-    "Write literature review", "Run ablation study", "Refactor storage layer", "Prepare slides",
-    "Reply to reviewer 2", "Update CI pipeline", "Fix flaky test", "Plan sprint", "Buy groceries",
-    "Book flights", "Renew passport", "Read paper on scheduling", "Draft grant proposal",
-    "Clean dataset", "Tune hyper-parameters", "Write unit tests", "Review pull request",
-    "Back up laptop", "Call the dentist", "Submit expense report",
+    "Write literature review",
+    "Run ablation study",
+    "Refactor storage layer",
+    "Prepare slides",
+    "Reply to reviewer 2",
+    "Update CI pipeline",
+    "Fix flaky test",
+    "Plan sprint",
+    "Buy groceries",
+    "Book flights",
+    "Renew passport",
+    "Read paper on scheduling",
+    "Draft grant proposal",
+    "Clean dataset",
+    "Tune hyper-parameters",
+    "Write unit tests",
+    "Review pull request",
+    "Back up laptop",
+    "Call the dentist",
+    "Submit expense report",
 ]
 PRIORITIES = ["low", "medium", "high"]
 PRIORITY_WEIGHTS = [0.3, 0.5, 0.2]

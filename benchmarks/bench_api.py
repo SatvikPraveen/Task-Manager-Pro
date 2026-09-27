@@ -29,14 +29,13 @@ import uuid
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
-from typing import Dict, List
 
 import httpx
 
-Samples = Dict[str, List[float]]
+Samples = dict[str, list[float]]
 
 
-def percentile(values: List[float], p: float) -> float:
+def percentile(values: list[float], p: float) -> float:
     if not values:
         return float("nan")
     ordered = sorted(values)
@@ -45,7 +44,7 @@ def percentile(values: List[float], p: float) -> float:
     return ordered[lo] + (ordered[hi] - ordered[lo]) * (k - lo)
 
 
-def worker(base_url: str, iterations: int, samples: Samples, lock: threading.Lock, errors: List[str]) -> None:
+def worker(base_url: str, iterations: int, samples: Samples, lock: threading.Lock, errors: list[str]) -> None:
     client = httpx.Client(base_url=base_url, timeout=30.0)
     name = f"bench_{uuid.uuid4().hex[:10]}"
 
@@ -87,7 +86,7 @@ def worker(base_url: str, iterations: int, samples: Samples, lock: threading.Loc
 
 def run(base_url: str, concurrency: int, iterations: int) -> dict:
     samples: Samples = defaultdict(list)
-    errors: List[str] = []
+    errors: list[str] = []
     lock = threading.Lock()
 
     health = httpx.get(f"{base_url}/health", timeout=10.0)
@@ -133,13 +132,15 @@ def to_markdown(report: dict) -> str:
         "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for label, m in report["endpoints"].items():
-        lines.append(f"| {label} | {m['n']} | {m['mean_ms']} | {m['p50_ms']} | {m['p95_ms']} | {m['p99_ms']} | {m['max_ms']} |")
+        lines.append(
+            f"| {label} | {m['n']} | {m['mean_ms']} | {m['p50_ms']} | {m['p95_ms']} | {m['p99_ms']} | {m['max_ms']} |"
+        )
     if report["errors"]:
         lines += ["", f"⚠️ {len(report['errors'])} error(s), first few:"] + [f"- {e}" for e in report["errors"][:5]]
     return "\n".join(lines)
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--concurrency", type=int, default=4)
