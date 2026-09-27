@@ -1,4 +1,1 @@
-import sys
-import os
-
-sys.path.insert(0, os.path.dirname(__file__))
+"""Task Manager PRO: CLI + REST API task management with a research-grade toolchain."""

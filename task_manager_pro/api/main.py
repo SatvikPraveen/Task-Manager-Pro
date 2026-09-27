@@ -11,8 +11,8 @@ from importlib.metadata import version as _pkg_version
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from task_manager_pro.api.routes import auth, tasks, users
+from task_manager_pro.config import get_settings
 from task_manager_pro.storage.database import init_db
-import os
 
 API_VERSION = _pkg_version("task-manager-pro")
 
@@ -36,10 +36,9 @@ app = FastAPI(
 )
 
 # Configure CORS (Cross-Origin Resource Sharing)
-origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=get_settings().cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -76,9 +75,10 @@ if __name__ == "__main__":
     import uvicorn
     # Defaults to loopback-only; set HOST=0.0.0.0 explicitly for
     # container/production use to avoid binding all interfaces by default.
+    _settings = get_settings()
     uvicorn.run(
         "task_manager_pro.api.main:app",
-        host=os.getenv("HOST", "127.0.0.1"),
-        port=int(os.getenv("PORT", "8000")),
-        reload=True,
+        host=_settings.host,
+        port=_settings.port,
+        reload=_settings.environment == "development",
     )

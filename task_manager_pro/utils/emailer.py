@@ -1,54 +1,69 @@
 """
 utils/emailer.py
 
-Provides functionality for sending email reminders to users about due tasks.
-Uses SMTP with STARTTLS and reads credentials from a .env file for secure configuration.
+SMTP email delivery for task reminders (STARTTLS).
+
+Credentials and server details come from :mod:`task_manager_pro.config`.
+The transport is injectable so tests can assert on the message that would be
+sent without touching the network.
 """
 
-import os
+from __future__ import annotations
+
+import logging
 import smtplib
-from dotenv import load_dotenv
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Callable, Optional
 
-# Load environment variables (e.g., email credentials, SMTP server details)
-load_dotenv()
+from task_manager_pro.config import get_settings
 
-EMAIL_ADDRESS = os.environ.get("EMAIL_USER")            # Sender's email address
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASS")           # Sender's email password or app-specific password
-SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")  # Default SMTP server
-SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))       # Port for STARTTLS (default: 587)
+logger = logging.getLogger(__name__)
+
+SMTPFactory = Callable[[str, int], smtplib.SMTP]
 
 
-def send_email_reminder(to_email: str, subject: str, body: str) -> None:
+def build_message(sender: str, to_email: str, subject: str, body: str) -> MIMEMultipart:
+    """Construct the MIME message for a plain-text reminder."""
+    msg = MIMEMultipart()
+    msg["From"] = sender
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+    return msg
+
+
+def send_email_reminder(
+    to_email: str,
+    subject: str,
+    body: str,
+    *,
+    smtp_factory: Optional[SMTPFactory] = None,
+) -> bool:
     """
-    Sends an email reminder using SMTP.
+    Send a reminder email.
 
-    Args:
-        to_email (str): Recipient's email address.
-        subject (str): Subject line of the email.
-        body (str): Main body content of the email.
+    Returns ``True`` on success, ``False`` if email is not configured or the
+    transport failed. Failures are logged rather than raised because reminders
+    are best-effort side effects of other operations.
     """
-    if not EMAIL_ADDRESS or not EMAIL_PASSWORD:
-        print("❌ Failed to send email: EMAIL_USER and EMAIL_PASS must be set in the environment")
-        return
+    settings = get_settings()
+    if not settings.email_configured:
+        logger.warning("Email not configured: EMAIL_USER and EMAIL_PASS must be set")
+        return False
+
+    sender = settings.email_user or ""
+    password = settings.email_pass.get_secret_value() if settings.email_pass else ""
+    factory: SMTPFactory = smtp_factory or smtplib.SMTP
 
     try:
-        # Construct the email message
-        msg = MIMEMultipart()
-        msg["From"] = EMAIL_ADDRESS
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-
-        # Establish connection to the SMTP server using STARTTLS
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-            server.starttls()  # Secure the connection
-            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)  # Login using credentials
-            server.send_message(msg)  # Send the email
-
-        print(f"📧 Email reminder sent to {to_email}!")
-
-    except Exception as e:
-        # Handle and display any errors encountered
-        print(f"❌ Failed to send email: {e}")
+        msg = build_message(sender, to_email, subject, body)
+        with factory(settings.smtp_server, settings.smtp_port) as server:
+            server.starttls()
+            server.login(sender, password)
+            server.send_message(msg)
+        logger.info("Email reminder sent to %s", to_email)
+        return True
+    except (smtplib.SMTPException, OSError) as exc:
+        logger.error("Failed to send email to %s: %s", to_email, exc)
+        return False

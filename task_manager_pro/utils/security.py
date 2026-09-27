@@ -1,99 +1,106 @@
 """
 utils/security.py
 
-Security utilities for password hashing and JWT token management.
-Provides secure credential handling for authentication.
+Password hashing and JWT helpers.
+
+All tunables (bcrypt cost, signing key, algorithm, default lifetime) come from
+:mod:`task_manager_pro.config` and are read at call time, so a process can be
+reconfigured (e.g. in tests) without re-importing this module.
+
+Tokens carry the standard registered claims ``sub``, ``iat``, ``exp`` and
+``jti`` plus a ``type`` claim ("access") so that future token kinds (refresh,
+API keys) cannot be confused with access tokens.
 """
 
-import bcrypt
-from typing import Optional
-import jwt
+from __future__ import annotations
+
+import uuid
 from datetime import datetime, timedelta, timezone
-import os
+from typing import Any, Dict, Optional
 
+import bcrypt
+import jwt
 
-# JWT Configuration
-_INSECURE_PLACEHOLDER = "your-secret-key-change-in-production"
+from task_manager_pro.config import get_settings
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY or SECRET_KEY == _INSECURE_PLACEHOLDER:
-    raise RuntimeError(
-        "SECRET_KEY environment variable is not set (or is still the "
-        "placeholder value). Refusing to start with an insecure JWT "
-        "signing key. Generate one with `openssl rand -hex 32` and set "
-        "it as SECRET_KEY in your environment or .env file."
-    )
+ACCESS_TOKEN_TYPE = "access"
 
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# A fixed, valid bcrypt hash used to keep login timing constant when the
+# username does not exist (see ``verify_password_dummy``). Generated once at
+# cost 12 from a random password that is not retained anywhere.
+_DUMMY_HASH = "$2b$12$pqAQgiQNyc54kVPCDImXe.QsYDOLlwDQRNc5AqgabyNZtAL0LtRTi"
 
 
 def hash_password(password: str) -> str:
-    """
-    Hash a password using bcrypt.
-    
-    Args:
-        password (str): Plain text password to hash
-        
-    Returns:
-        str: Hashed password (bcrypt format)
-    """
-    salt = bcrypt.gensalt(rounds=12)
+    """Hash ``password`` with bcrypt at the configured work factor."""
+    rounds = get_settings().bcrypt_rounds
+    salt = bcrypt.gensalt(rounds=rounds)
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify a plain password against a bcrypt hash.
-    
-    Args:
-        plain_password (str): Plain text password to verify
-        hashed_password (str): Hashed password from database
-        
-    Returns:
-        bool: True if password matches, False otherwise
-    """
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Create a JWT access token.
-    
-    Args:
-        data (dict): Data to encode in token (e.g., {"sub": user_id})
-        expires_delta (Optional[timedelta]): Token expiration time
-        
-    Returns:
-        str: Encoded JWT token
-    """
-    to_encode = data.copy()
-    
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    
-    return encoded_jwt
-
-
-def decode_token(token: str) -> Optional[dict]:
-    """
-    Decode and verify a JWT token.
-    
-    Args:
-        token (str): JWT token to decode
-        
-    Returns:
-        Optional[dict]: Decoded payload if valid, None if invalid
-    """
+    """Return ``True`` if ``plain_password`` matches the bcrypt ``hashed_password``."""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        return None
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except ValueError:
+        # Malformed hash stored in the database; treat as non-matching.
+        return False
+
+
+def verify_password_dummy(plain_password: str) -> None:
+    """
+    Burn the same amount of CPU as a real verification.
+
+    Called on login when the username is unknown so that the response time does
+    not reveal whether an account exists (timing-based user enumeration).
+    """
+    bcrypt.checkpw(plain_password.encode("utf-8"), _DUMMY_HASH.encode("utf-8"))
+
+
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create a signed JWT access token.
+
+    Args:
+        data: Claims to embed (must include ``sub``).
+        expires_delta: Lifetime override; defaults to ``ACCESS_TOKEN_EXPIRE_MINUTES``.
+    """
+    settings = get_settings()
+    now = datetime.now(timezone.utc)
+    lifetime = expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    to_encode: Dict[str, Any] = dict(data)
+    to_encode.update(
+        {
+            "iat": now,
+            "exp": now + lifetime,
+            "jti": uuid.uuid4().hex,
+            "type": ACCESS_TOKEN_TYPE,
+        }
+    )
+    return jwt.encode(
+        to_encode,
+        settings.secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+
+def decode_token(token: str) -> Optional[Dict[str, Any]]:
+    """
+    Decode and verify a JWT.
+
+    Returns the payload, or ``None`` if the signature, expiry or token type is
+    invalid. Callers never see the underlying ``jwt`` exceptions.
+    """
+    settings = get_settings()
+    try:
+        payload: Dict[str, Any] = jwt.decode(
+            token,
+            settings.secret_key.get_secret_value(),
+            algorithms=[settings.jwt_algorithm],
+            options={"require": ["exp", "sub"]},
+        )
     except jwt.InvalidTokenError:
         return None
+    if payload.get("type", ACCESS_TOKEN_TYPE) != ACCESS_TOKEN_TYPE:
+        return None
+    return payload
