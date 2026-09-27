@@ -22,14 +22,14 @@ versioned migrations, and a **property-tested urgency model** that answers
 
 | Area | What you get |
 |---|---|
-| **API** | 20 endpoints: auth (register/login/refresh), task CRUD with filtering, sorting and pagination in SQL, `stats` and `next` analytics, profile management |
-| **Ranking** | `GET /api/tasks/next` orders pending tasks by a bounded logistic urgency score `w·σ((d₀−d)/τ)` — priority-weighted, monotone in deadline, saturating for overdue tasks ([ADR-0003](docs/adr/0003-bounded-logistic-urgency.md)) |
+| **API** | 21 endpoints: auth (register/login/refresh/logout), task CRUD with filtering, sorting and pagination in SQL, `stats` and `next` analytics, profile management |
+| **Ranking** | `GET /api/tasks/next` orders pending tasks by a bounded logistic urgency score `w·σ((d₀−d)/τ)` — priority-weighted, monotone in deadline, saturating for overdue tasks; `?calibrated=true` fits `d₀`/`τ` to your own completion history ([ADR-0003](docs/adr/0003-bounded-logistic-urgency.md)) |
 | **Analytics** | `GET /api/tasks/stats`: completion & on-time rates, overdue load, mean/median completion latency, per-priority breakdown |
-| **Security** | bcrypt (cost 12), JWT with `iat`/`jti`/`type`, constant-time login, sliding-window rate limit on auth endpoints, security headers, ownership enforced in SQL ([SECURITY.md](SECURITY.md)) |
+| **Security** | bcrypt (cost 12), JWT with `iat`/`jti`/`type`, logout and rotating refresh via a jti denylist, constant-time login, sliding-window rate limit on auth endpoints (in-memory or Redis), security headers, ownership enforced in SQL ([SECURITY.md](SECURITY.md)) |
 | **Observability** | `X-Request-ID` / `X-Process-Time` on every response, JSON logs with request IDs, `/metrics` (Prometheus, labelled by route template), `/health` with a DB probe |
 | **Persistence** | SQLAlchemy 2.0, SQLite or PostgreSQL, Alembic migrations with a drift check in CI, composite index on the hot query |
-| **Quality** | 88 tests incl. Hypothesis property tests, 93 % coverage (80 % gate), Ruff, mypy (pydantic plugin), Bandit, pip-audit, pre-commit; CI matrix 3.10–3.13 × SQLite + 3.12 × PostgreSQL 16 |
-| **Ops** | Multi-stage non-root Docker image (migrates then serves), `docker compose` with PostgreSQL + Prometheus, `Makefile`, benchmark and seed scripts |
+| **Quality** | 101 tests incl. Hypothesis property tests, 93 % coverage (80 % gate), Ruff, mypy (pydantic plugin), Bandit, pip-audit, pre-commit; CI matrix 3.10–3.13 × SQLite + 3.12 × PostgreSQL 16 + Redis 7 |
+| **Ops** | Multi-stage non-root Docker image (migrates then serves), `docker compose` with PostgreSQL + Redis + Prometheus, Dependabot, `Makefile`, benchmark and seed scripts |
 
 ---
 
@@ -38,7 +38,7 @@ versioned migrations, and a **property-tested urgency model** that answers
 ```bash
 git clone https://github.com/SatvikPraveen/Task-Manager-Pro.git && cd Task-Manager-Pro
 python -m venv .venv && source .venv/bin/activate
-make install                       # pip install -e ".[dev,postgres]" + pre-commit hooks
+make install                       # pip install -e ".[dev,postgres,redis]" + pre-commit hooks
 
 cp .env.template .env
 python -c 'import secrets; print(secrets.token_hex(32))'   # paste as SECRET_KEY in .env
@@ -67,7 +67,7 @@ curl -s localhost:8000/api/tasks/stats -H "authorization: Bearer $TOKEN"
 Or the whole stack with PostgreSQL and Prometheus:
 
 ```bash
-docker compose up --build        # API on :8000, Prometheus on :9090
+docker compose up --build        # API on :8000 (PostgreSQL + Redis), Prometheus on :9090
 ```
 
 ---
@@ -78,10 +78,11 @@ docker compose up --build        # API on :8000, Prometheus on :9090
 |---|---|---|
 | `POST` | `/api/auth/register` | Create an account (rate-limited) |
 | `POST` | `/api/auth/login` | Get a bearer token (`expires_in` included; rate-limited; constant-time) |
-| `POST` | `/api/auth/refresh-token` | New token for a valid bearer |
+| `POST` | `/api/auth/refresh-token` | Rotate: new token issued, presented token revoked |
+| `POST` | `/api/auth/logout` | Revoke the presented token |
 | `GET` | `/api/tasks` | List with `completed`, `priority`, `due_before`, `due_after`, `q`, `sort_by`, `sort_desc`, `skip`, `limit` |
 | `POST` | `/api/tasks` | Create |
-| `GET` | `/api/tasks/next?limit=5` | Most urgent pending tasks with `urgency` and `days_until_due` |
+| `GET` | `/api/tasks/next?limit=5&calibrated=false` | Most urgent pending tasks with `urgency`, `days_until_due` and the curve `params` used |
 | `GET` | `/api/tasks/stats` | Workload statistics |
 | `GET` / `PUT` / `DELETE` | `/api/tasks/{id}` | Read / partial update / delete (404 for other users' tasks) |
 | `GET` / `PUT` | `/api/users/me` | Profile |
@@ -102,7 +103,10 @@ high-priority one that is at least as close), strictly decreasing in `d`,
 monotone in priority, zero for completed tasks, and the ranking breaks ties
 on due date then ID. These are not just claims: `tests/test_analytics.py`
 checks them with Hypothesis across thousands of generated dates,
-priorities and parameter settings.
+priorities and parameter settings. Pass `?calibrated=true` and the horizon
+and temperature are estimated from your own completion history (median and
+MAD of how far ahead of deadlines you finish), so the ranking adapts to how
+you actually work.
 
 ---
 
@@ -132,14 +136,14 @@ task_manager_pro/
 │   ├── dependencies.py     # bearer auth, repository provider
 │   ├── middleware/         # request_id, security_headers, rate_limit
 │   └── routes/             # auth, tasks (+stats, +next), users
-├── analytics/              # urgency model + statistics (pure, property-tested)
+├── analytics/              # urgency model, calibration, statistics (pure, property-tested)
 ├── observability/          # structured logging, Prometheus metrics
 ├── storage/                # engine/session, ORM models, SQLStorage repository
 ├── schemas/                # Pydantic v2 request/response models
-├── utils/                  # bcrypt/JWT, SMTP, CLI helpers
+├── utils/                  # bcrypt/JWT, token denylist, SMTP, CLI helpers
 ├── services/, models/, cli.py, send_reminders.py   # original JSON-backed CLI
 migrations/                 # Alembic environment + revisions
-tests/                      # 88 tests (unit, property-based, API integration, CLI service)
+tests/                      # 101 tests (unit, property-based, API integration, CLI service)
 benchmarks/, scripts/       # bench_api.py, seed_data.py
 docs/                       # ARCHITECTURE.md, adr/, phase write-ups
 ```

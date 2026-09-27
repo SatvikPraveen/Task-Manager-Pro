@@ -22,7 +22,8 @@ FastAPI Application
 ├── Authentication Routes (/api/auth)
 │   ├── POST /register       - User registration
 │   ├── POST /login          - User login (returns JWT)
-│   └── POST /refresh-token  - Token refresh
+│   ├── POST /refresh-token  - Token rotation
+│   └── POST /logout         - Token revocation
 ├── Tasks Routes (/api/tasks)
 │   ├── POST /              - Create task
 │   ├── GET /               - List tasks (paginated)
@@ -102,12 +103,24 @@ Response (200):
 }
 ```
 
-#### Refresh Token
+#### Refresh (rotate) Token
+
+Since 0.4.0 the token is read from the `Authorization` header (never the
+query string or body, so it does not end up in access logs); since 0.5.0 the
+presented token is revoked when the new one is issued.
 
 ```bash
 curl -X POST "http://localhost:8000/api/auth/refresh-token" \
-  -H "Content-Type: application/json" \
-  -d '{"token": "old_token_here"}'
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+#### Logout
+
+Revokes the presented token immediately (other sessions are unaffected).
+
+```bash
+curl -X POST "http://localhost:8000/api/auth/logout" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 ### Tasks
@@ -369,7 +382,7 @@ uvicorn task_manager_pro.api.main:app --port 8001
 
 ### Token Expired?
 
-Call `/api/auth/refresh-token` with current token to get a new one.
+Call `/api/auth/refresh-token` with the current token in the `Authorization` header to get a new one (the old one is revoked).
 
 ### CORS Errors?
 

@@ -18,13 +18,25 @@ Phase 4 establishes a production-grade testing framework and automated CI/CD pip
 
 ```
 tests/
-├── test_tasks.py         # Unit tests for Task model
-├── test_users.py         # Unit tests for User model
-├── test_email.py         # Email functionality tests
-├── test_api.py           # Integration tests for REST API
-├── test_security.py      # Security utilities tests (new)
-└── test_storage.py       # Database storage tests (new)
+├── conftest.py               # Pins env (in-memory DB, bcrypt cost 4, no rate limit) before app import
+├── helpers.py                # register/login/create_task helpers for API tests
+├── test_api.py               # Original REST API integration tests
+├── test_api_tasks_query.py   # Filtering, sorting, paging metadata, isolation, refresh
+├── test_api_analytics.py     # /api/tasks/stats and /api/tasks/next (incl. calibration)
+├── test_analytics.py         # Hypothesis property tests for the urgency model & statistics
+├── test_calibration.py       # Property tests for per-user calibration
+├── test_storage.py           # SQLStorage against a private in-memory engine
+├── test_middleware.py        # Rate limiter (fake clock), request ID, security headers, metrics
+├── test_token_revocation.py  # Denylist, Redis limiter (when REDIS_URL set), logout/rotation
+├── test_cli_service.py       # JSON-backed CLI service, session, decorators, LoggerContext
+├── test_email.py             # SMTP helper with a fake transport
+├── test_tasks.py             # Task domain model
+└── test_users.py             # User domain model
 ```
+
+The CI matrix runs Python 3.10–3.13 on SQLite and 3.12 on PostgreSQL 16 +
+Redis 7, enforces an 80 % coverage floor, and gates on Ruff, mypy, Bandit,
+pip-audit, `alembic check` and a Docker smoke test.
 
 ## Running Tests Locally
 

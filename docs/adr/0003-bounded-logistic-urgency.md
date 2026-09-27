@@ -34,5 +34,7 @@ vary them without touching the function.
   completed, deterministic ranking) are executable specifications in
   `tests/test_analytics.py` via Hypothesis, so a future tweak that breaks
   one of them fails CI.
-* The score is *not* calibrated against user behaviour; it is a documented
-  heuristic. Learning `d₀`/`τ` per user from completion data is future work.
+* The defaults are a documented heuristic, not fitted. Since 0.5.0
+  `analytics/calibration.py` optionally estimates `d₀`/`τ` per user from
+  completion history (median and MAD of `due_date − completed_at`, clipped
+  to sane ranges, ≥ 5 samples), exposed as `GET /api/tasks/next?calibrated=true`.

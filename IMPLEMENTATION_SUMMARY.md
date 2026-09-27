@@ -4,9 +4,14 @@
 
 Task Manager PRO has been successfully transformed from a simple JSON-based CLI tool into a **production-grade distributed task management system** with database persistence, REST API, comprehensive testing, and CI/CD automation.
 
-**Version:** 0.3.0  
-**Last Updated:** Phase 4 Complete  
-**Status:** ✅ Core Implementation Finished
+**Version:** 0.5.0  
+**Last Updated:** Phase 5 (research-grade hardening) complete  
+**Status:** ✅ Maintained — see [CHANGELOG.md](CHANGELOG.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the current design
+
+> This document is the historical record of phases 1–4. Phase 5 replaced
+> several mechanisms described below (configuration, querying, token
+> refresh, testing, CI, Docker); where they differ, the architecture
+> document and ADRs are authoritative.
 
 ---
 
@@ -88,7 +93,7 @@ task_manager_pro/
 - Dependency injection for extracting current user
 - Refresh token endpoint for token renewal
 
-**API Routes (17 Total):**
+**API Routes (17 at phase 3; 21 as of 0.5.0 — see README for the full table):**
 
 ```
 Authentication (3 routes):
@@ -117,7 +122,7 @@ Health Check (2 routes):
 
 ```
 task_manager_pro/api/
-├── main.py              # FastAPI app initialization, 17 routes
+├── main.py              # FastAPI app factory (create_app), middleware stack
 ├── dependencies.py      # JWT authentication, storage injection
 └── routes/
     ├── __init__.py
@@ -504,9 +509,9 @@ Task-Manager-Pro/
 
 ### Test Suite
 
-- Full suite execution: ~5.9 seconds
-- 20 tests passing with 100% isolation
-- No external dependencies required
+- Full suite execution: ~2 seconds (in-memory SQLite, bcrypt cost 4)
+- 99+ tests including Hypothesis property tests; 80 % coverage gate (93 % actual)
+- No external services required; Redis-backed tests run only when `REDIS_URL` is set
 
 ---
 

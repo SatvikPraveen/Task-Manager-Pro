@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] – 2026-09-27
+
+### Added
+- `POST /api/auth/logout` revokes the presented token; `POST /api/auth/refresh-token` now rotates (the old token is revoked). Revocation is a `jti` denylist with TTL = remaining token lifetime (ADR-0006).
+- `SHARED_STATE_BACKEND=redis` + `REDIS_URL`: rate-limit windows and revoked tokens shared across replicas. The Redis rate limiter is a Lua-scripted atomic sliding window. New optional extra `task-manager-pro[redis]`.
+- Per-user urgency calibration: `GET /api/tasks/next?calibrated=true` estimates the half-urgency horizon and temperature from the user's completion history (median / MAD of lead time, clipped, ≥ 5 samples); responses include the `params` used.
+- CI: Redis 7 service on the PostgreSQL job; Dependabot for pip, GitHub Actions and Docker; `docker compose` includes Redis.
+- Tests: 88 → 101 (denylist, Redis limiter/denylist when available, logout/rotation, calibration properties).
+
+### Changed
+- `QUICKSTART.md`, `IMPLEMENTATION_SUMMARY.md` and the phase write-ups updated to the current API (bearer-header refresh, new endpoints, current test layout).
+
 ## [0.4.0] – 2026-09-27
 
 ### Added

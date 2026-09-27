@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: Praveen
     given-names: Satvik
-version: 0.4.0
+version: 0.5.0
 date-released: 2026-09-27
 license: GPL-3.0-or-later
 repository-code: "https://github.com/SatvikPraveen/Task-Manager-Pro"

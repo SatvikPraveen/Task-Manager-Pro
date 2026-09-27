@@ -40,7 +40,7 @@ their own packages so each can be tested in isolation.
 | `task_manager_pro.api` | FastAPI app factory, routes, dependencies, middleware | `create_app()` builds the stack; `app` is the ASGI entry point |
 | `task_manager_pro.storage` | Engine/session factory, ORM models, `SQLStorage` repository | All filtering/sorting/paging in SQL; ORM objects returned detached |
 | `task_manager_pro.schemas` | Pydantic v2 request/response models | `from_model()` on every response schema |
-| `task_manager_pro.analytics` | Urgency model and workload statistics | Pure; verified with Hypothesis |
+| `task_manager_pro.analytics` | Urgency model, per-user calibration, workload statistics | Pure; verified with Hypothesis |
 | `task_manager_pro.observability` | Structured logging, Prometheus metrics | Request ID via `contextvars` |
 | `task_manager_pro.utils` | bcrypt/JWT helpers, SMTP, CLI helpers | |
 | `task_manager_pro.services`, `models`, `cli` | The original JSON-backed CLI | Unchanged behaviour; kept for the `task-manager` command |
@@ -58,9 +58,17 @@ their own packages so each can be tested in isolation.
 4. **RateLimitMiddleware** applies a per-client sliding window to
    `POST /api/auth/login` and `/register` (429 + `Retry-After`).
 5. **CORSMiddleware** as configured by `CORS_ORIGINS`.
-6. The route handler resolves `get_current_user` (bearer JWT → user ID) and
+6. The route handler resolves `get_token_payload` (bearer JWT → claims,
+   rejecting revoked `jti`s via the token denylist), `get_current_user` and
    `get_storage` (the repository singleton), performs the operation and
    returns a Pydantic model.
+
+### Shared state
+
+Rate-limit windows and revoked tokens are the only mutable state outside
+the database. `SHARED_STATE_BACKEND=memory` keeps them in-process;
+`redis` (with `REDIS_URL`) shares them across replicas — the rate limiter
+runs a Lua script so check-and-record is atomic. See ADR-0006.
 
 ## Data model
 
@@ -99,6 +107,13 @@ date then ID. See `task_manager_pro/analytics/urgency.py` and the
 property-based tests in `tests/test_analytics.py`, and ADR-0003 for why a
 bounded logistic was chosen over linear or exponential penalties.
 
+With `?calibrated=true`, `analytics/calibration.py` replaces the defaults
+with per-user estimates: `d₀` is the median lead time (`due_date −
+completed_at`) of the user's completed tasks and `τ` is `1.4826 · MAD` of
+the same, both clipped to sane ranges, once at least five completions
+exist. Both estimators are robust to outliers and invariant to time shifts,
+which the tests in `tests/test_calibration.py` verify.
+
 ## Testing strategy
 
 | Layer | Approach | Files |
@@ -106,6 +121,7 @@ bounded logistic was chosen over linear or exponential penalties.
 | Analytics | Hypothesis property tests over dates/priorities/parameters | `tests/test_analytics.py` |
 | Repository | Private in-memory engine per test via the injectable session factory | `tests/test_storage.py` |
 | Middleware | Unit tests with a fake clock + a minimal app | `tests/test_middleware.py` |
+| Revocation / Redis | Fake clock in-memory; real Redis when `REDIS_URL` is set (CI) | `tests/test_token_revocation.py` |
 | API | `TestClient` against the real app on an in-memory database | `tests/test_api*.py` |
 | Email | Fake SMTP transport | `tests/test_email.py` |
 
