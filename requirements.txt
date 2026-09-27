@@ -11,6 +11,7 @@ python-dotenv>=1.2,<2.0      # Loads environment variables from .env files (used
 # 🌐 REST API Framework
 fastapi>=0.100,<1.0          # Modern, fast web framework for building APIs
 uvicorn[standard]>=0.23,<1.0 # ASGI server for running FastAPI
+prometheus-client>=0.20,<1.0 # Prometheus metrics exposition (/metrics)
 
 # 🔠 Typing and Data Structures
 typing-extensions>=4.9,<5.0  # Adds backported and experimental type hints for compatibility
