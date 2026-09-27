@@ -116,10 +116,23 @@ class TaskWithUrgency(TaskResponse):
     days_until_due: float = Field(..., description="Fractional days until due; negative when overdue")
 
 
+class UrgencyParamsResponse(BaseModel):
+    """The urgency-curve parameters used for a ranking."""
+
+    half_urgency_days: float = Field(
+        ..., description="Days before due at which urgency reaches half the priority weight"
+    )
+    temperature_days: float = Field(..., gt=0, description="How sharply urgency rises near the deadline")
+    calibrated: bool = Field(..., description="True if derived from the user's completion history")
+    samples: int = Field(..., ge=0, description="Completed tasks with timestamps used for calibration")
+    lead_days_median: Optional[float] = Field(None, description="Median of due_date - completed_at in days")
+
+
 class NextTasksResponse(BaseModel):
     """The most urgent pending tasks, best first."""
 
     as_of: datetime
+    params: UrgencyParamsResponse
     tasks: list[TaskWithUrgency]
 
 

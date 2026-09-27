@@ -89,3 +89,29 @@ def test_task_named_stats_is_not_shadowed(client, headers):
     the literal routes must be registered first so they resolve."""
     r = client.get("/api/tasks/not-a-real-id", headers=headers)
     assert r.status_code == 404
+
+
+def test_next_calibrated_uses_history_when_enough_completions(client, headers):
+    today = date.today()
+    # Six tasks completed today, each due 4 days from now → median lead 4 days.
+    for i in range(6):
+        t = create_task(client, headers, f"done {i}", (today + timedelta(days=4)).isoformat(), "medium")
+        client.put(f"/api/tasks/{t['id']}", headers=headers, json={"completed": True})
+    create_task(client, headers, "Pending", (today + timedelta(days=2)).isoformat(), "high")
+
+    default = client.get("/api/tasks/next", headers=headers).json()
+    assert default["params"]["calibrated"] is False and default["params"]["half_urgency_days"] == 3.0
+
+    body = client.get("/api/tasks/next", headers=headers, params={"calibrated": "true"}).json()
+    params = body["params"]
+    assert params["calibrated"] is True and params["samples"] == 6
+    assert 3.5 <= params["half_urgency_days"] <= 4.5
+    assert [t["title"] for t in body["tasks"]] == ["Pending"]
+    # Same task, larger horizon → it is "more urgent" under the calibrated curve.
+    assert body["tasks"][0]["urgency"] > default["tasks"][0]["urgency"]
+
+
+def test_next_calibrated_falls_back_with_little_history(client, headers):
+    create_task(client, headers, "Only one", "2030-01-01")
+    body = client.get("/api/tasks/next", headers=headers, params={"calibrated": "true"}).json()
+    assert body["params"]["calibrated"] is False and body["params"]["samples"] == 0

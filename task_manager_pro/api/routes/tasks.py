@@ -12,7 +12,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from task_manager_pro.analytics import compute_statistics, days_until_due, rank_tasks
+from task_manager_pro.analytics import DEFAULT_PARAMS, calibrate_params, compute_statistics, days_until_due, rank_tasks
 from task_manager_pro.api.dependencies import get_current_user, get_storage
 from task_manager_pro.schemas.task import (
     NextTasksResponse,
@@ -24,6 +24,7 @@ from task_manager_pro.schemas.task import (
     TaskStatsResponse,
     TaskUpdate,
     TaskWithUrgency,
+    UrgencyParamsResponse,
 )
 from task_manager_pro.storage.sql_storage import SQLStorage
 
@@ -108,18 +109,44 @@ async def task_statistics(
 @router.get("/next", response_model=NextTasksResponse)
 async def next_tasks(
     limit: int = Query(5, ge=1, le=50, description="How many tasks to recommend"),
+    calibrated: bool = Query(
+        False,
+        description="Derive the urgency curve from your own completion history "
+        "(falls back to the defaults with fewer than 5 completed tasks)",
+    ),
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
 ) -> NextTasksResponse:
     """
     The caller's most urgent pending tasks, ranked by the urgency model in
     ``task_manager_pro.analytics.urgency`` (priority-weighted logistic decay
-    towards the due date).
+    towards the due date), optionally calibrated per user.
     """
     now = datetime.now(timezone.utc)
-    ranked = rank_tasks(storage.get_user_tasks(user_id, completed=False), now=now)[:limit]
+    all_tasks = storage.get_user_tasks(user_id)
+    if calibrated:
+        result = calibrate_params(all_tasks)
+        params = result.params
+        params_out = UrgencyParamsResponse(
+            half_urgency_days=params.half_urgency_days,
+            temperature_days=params.temperature_days,
+            calibrated=result.calibrated,
+            samples=result.samples,
+            lead_days_median=result.lead_days_median,
+        )
+    else:
+        params = DEFAULT_PARAMS
+        params_out = UrgencyParamsResponse(
+            half_urgency_days=params.half_urgency_days,
+            temperature_days=params.temperature_days,
+            calibrated=False,
+            samples=0,
+            lead_days_median=None,
+        )
+    ranked = rank_tasks((t for t in all_tasks if not t.completed), now=now, params=params)[:limit]
     return NextTasksResponse(
         as_of=now,
+        params=params_out,
         tasks=[
             TaskWithUrgency(
                 **TaskResponse.from_model(task).model_dump(),
