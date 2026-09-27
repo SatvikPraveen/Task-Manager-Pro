@@ -5,8 +5,8 @@ Provides function decorators to enhance functionality of CLI actions.
 Includes logging of function calls and enforcement of login requirements.
 """
 
-from functools import wraps
 from datetime import datetime
+from functools import wraps
 
 
 def log_action(func):
@@ -19,6 +19,7 @@ def log_action(func):
     Returns:
         Callable: Wrapped function with logging functionality.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -27,6 +28,7 @@ def log_action(func):
         result = func(*args, **kwargs)
         print(f"[{timestamp}] ✔ Completed: {func_name}")
         return result
+
     return wrapper
 
 
@@ -41,10 +43,12 @@ def require_login(func):
     Returns:
         Callable: Wrapped function that checks login status before execution.
     """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
             print("❌ Please login to perform this action.")
             return
         return func(self, *args, **kwargs)
+
     return wrapper

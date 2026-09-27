@@ -16,9 +16,10 @@ Middleware stack (outermost first):
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from importlib.metadata import PackageNotFoundError, version as _pkg_version
-from typing import AsyncIterator, Dict
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _pkg_version
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -62,8 +63,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        description="Task management API with JWT auth, SQL-side querying, "
-        "rate limiting and Prometheus metrics.",
+        description="Task management API with JWT auth, SQL-side querying, rate limiting and Prometheus metrics.",
         version=API_VERSION,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
@@ -97,7 +97,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(users.router, prefix="/api/users", tags=["Users"])
 
     @app.get("/", tags=["Meta"])
-    async def root() -> Dict[str, str]:
+    async def root() -> dict[str, str]:
         """API information."""
         return {
             "message": "🎯 Task Manager PRO API",

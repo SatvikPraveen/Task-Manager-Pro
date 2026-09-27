@@ -9,6 +9,7 @@ Useful for tracking actions in long-running or critical sections of the CLI tool
 import datetime
 from typing import Optional, TextIO
 
+
 class LoggerContext:
     def __init__(self, action: str = "Executing block", log_file="task_manager.log"):
         """
@@ -77,7 +78,7 @@ class LoggerContext:
             raise RuntimeError("Log handle not initialized.")
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self._log_handle.write(f"[{timestamp}] {message}\n")
-        
+
     def log(self, message: str):
         """
         Logs a custom message with a 📝 prefix.

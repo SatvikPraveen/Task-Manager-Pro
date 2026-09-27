@@ -8,8 +8,10 @@ Implements the StorageInterface to support load and save operations.
 
 import json
 import os
-from typing import Dict, Any
+from typing import Any
+
 from task_manager_pro.storage.interface import StorageInterface
+
 
 class JSONStorage(StorageInterface):
     def __init__(self, filename="tasks.json"):
@@ -30,7 +32,7 @@ class JSONStorage(StorageInterface):
         with open(self.filename, "w") as f:
             json.dump({"tasks": [], "users": []}, f)
 
-    def load_data(self) -> Dict[str, Any]:
+    def load_data(self) -> dict[str, Any]:
         """
         Loads and returns the data from the JSON file.
 
@@ -38,11 +40,11 @@ class JSONStorage(StorageInterface):
             Dict[str, Any]: Dictionary containing user and task data.
         """
         try:
-            with open(self.filename, "r") as f:
+            with open(self.filename) as f:
                 return json.load(f)
         except FileNotFoundError:
             return {"users": [], "tasks": []}
-    
+
     def save_data(self, data):
         """
         Saves the provided data dictionary to the JSON file.

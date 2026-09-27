@@ -7,9 +7,7 @@ in-memory fake so no network access happens.
 
 from __future__ import annotations
 
-import os
 import smtplib
-from typing import List
 
 import pytest
 
@@ -20,15 +18,15 @@ from task_manager_pro.utils.emailer import build_message, send_email_reminder
 class FakeSMTP:
     """Records the calls a real ``smtplib.SMTP`` would receive."""
 
-    instances: List["FakeSMTP"] = []
+    instances: list[FakeSMTP] = []
 
     def __init__(self, host: str, port: int) -> None:
         self.host, self.port = host, port
-        self.calls: List[str] = []
+        self.calls: list[str] = []
         self.sent = []
         FakeSMTP.instances.append(self)
 
-    def __enter__(self) -> "FakeSMTP":
+    def __enter__(self) -> FakeSMTP:
         return self
 
     def __exit__(self, *exc) -> None:  # type: ignore[no-untyped-def]

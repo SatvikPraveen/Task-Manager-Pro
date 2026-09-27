@@ -1,10 +1,10 @@
-'''
+"""
 send_reminders.py
 
 This script sends daily email reminders to users who have due or overdue tasks.
 Designed to be run as a scheduled job (e.g., via cron).
 Ensures reminders are not sent multiple times in a day and logs output for tracking.
-'''
+"""
 
 import datetime
 import io
@@ -46,7 +46,8 @@ for user_data in data.get("users", []):
 
     # Filter due/overdue tasks for this user
     due_tasks = [
-        t for t in data.get("tasks", [])
+        t
+        for t in data.get("tasks", [])
         if t["user"] == username
         and not t["completed"]
         and datetime.datetime.strptime(t["due_date"], "%Y-%m-%d").date() <= today

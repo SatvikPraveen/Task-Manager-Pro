@@ -8,8 +8,10 @@ Also handles user login, logout, and email reminder toggling via CLI.
 """
 
 import argparse
+
 from task_manager_pro.services.task_manager import TaskManager
 from task_manager_pro.storage.json_storage import JSONStorage
+
 
 def main():
     # Initialize argument parser
@@ -49,13 +51,13 @@ def main():
     login_parser.add_argument("--email", help="Optional email for reminders")
 
     # Send Reminders Manually command
-    send_reminders_parser = subparsers.add_parser("send-reminders", help="Manually send email reminders (if enabled)")
+    subparsers.add_parser("send-reminders", help="Manually send email reminders (if enabled)")
 
     # Toggle Email Reminders command
-    toggle_email_parser = subparsers.add_parser("toggle-email-reminders", help="Toggle email reminder preference")
+    subparsers.add_parser("toggle-email-reminders", help="Toggle email reminder preference")
 
     # Logout command
-    logout_parser = subparsers.add_parser("logout", help="Log out current user")
+    subparsers.add_parser("logout", help="Log out current user")
 
     # Parse the CLI arguments
     args = parser.parse_args()
@@ -79,21 +81,22 @@ def main():
 
     elif args.command == "login":
         manager.login(args.username, args.email)
-    
+
     elif args.command == "logout":
         manager.logout()
-    
+
     elif args.command == "update-task":
         manager.update_task(args.id, args.title, args.desc, args.due)
-    
+
     elif args.command == "send-reminders":
         manager.send_due_reminders()
-    
+
     elif args.command == "toggle-email-reminders":
         manager.toggle_email_reminders()
 
     else:
         parser.print_help()
+
 
 # Ensures this runs only when called from command line
 if __name__ == "__main__":

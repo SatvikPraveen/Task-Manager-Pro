@@ -12,7 +12,8 @@ connection would see an empty schema).
 
 from __future__ import annotations
 
-from typing import Generator, Optional
+from collections.abc import Generator
+from typing import Optional
 
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine

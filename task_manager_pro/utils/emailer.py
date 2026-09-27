@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import logging
 import smtplib
+from collections.abc import Callable
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Callable, Optional
+from typing import Optional
 
 from task_manager_pro.config import get_settings
 

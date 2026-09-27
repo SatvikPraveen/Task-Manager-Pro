@@ -13,6 +13,7 @@ from typing import Optional
 # Name of the session file to store the current user session
 SESSION_FILE = "session.json"
 
+
 def save_session(username: str) -> None:
     """
     Saves the current user's session to disk.
@@ -23,6 +24,7 @@ def save_session(username: str) -> None:
     with open(SESSION_FILE, "w") as f:
         json.dump({"username": username}, f)
 
+
 def load_session() -> Optional[str]:
     """
     Loads the current user's session from disk.
@@ -31,9 +33,10 @@ def load_session() -> Optional[str]:
         Optional[str]: The username if a session exists, else None.
     """
     if os.path.exists(SESSION_FILE):
-        with open(SESSION_FILE, "r") as f:
+        with open(SESSION_FILE) as f:
             return json.load(f).get("username")
     return None
+
 
 def clear_session() -> None:
     """

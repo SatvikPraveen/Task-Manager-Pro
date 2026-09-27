@@ -68,7 +68,9 @@ def test_list_sorting_and_page_metadata(client, headers):
     assert [t["title"] for t in body["tasks"]] == ["Write paper", "Run experiments"]
     assert body == {**body, "total": 3, "page": 1, "page_size": 2, "pages": 2}
 
-    r = client.get("/api/tasks", headers=headers, params={"sort_by": "title", "sort_desc": "true", "limit": 2, "skip": 2})
+    r = client.get(
+        "/api/tasks", headers=headers, params={"sort_by": "title", "sort_desc": "true", "limit": 2, "skip": 2}
+    )
     assert [t["title"] for t in r.json()["tasks"]] == ["Buy milk"]
     assert r.json()["page"] == 2
 

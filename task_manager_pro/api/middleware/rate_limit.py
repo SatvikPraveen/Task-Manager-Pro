@@ -21,7 +21,8 @@ import json
 import threading
 import time
 from collections import deque
-from typing import Callable, Deque, Dict, Optional, Tuple
+from collections.abc import Callable
+from typing import Optional
 
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
@@ -32,25 +33,26 @@ Clock = Callable[[], float]
 class SlidingWindowRateLimiter:
     """Allow at most ``limit`` events per ``window_seconds`` per key."""
 
-    def __init__(self, limit: int, window_seconds: float = 60.0, *, clock: Clock = time.monotonic,
-                 max_keys: int = 10_000) -> None:
+    def __init__(
+        self, limit: int, window_seconds: float = 60.0, *, clock: Clock = time.monotonic, max_keys: int = 10_000
+    ) -> None:
         if limit < 1:
             raise ValueError("limit must be >= 1")
         self.limit = limit
         self.window = float(window_seconds)
         self._clock = clock
         self._max_keys = max_keys
-        self._events: Dict[str, Deque[float]] = {}
+        self._events: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
 
-    def _prune(self, key: str, now: float) -> Deque[float]:
+    def _prune(self, key: str, now: float) -> deque[float]:
         events = self._events.setdefault(key, deque())
         cutoff = now - self.window
         while events and events[0] <= cutoff:
             events.popleft()
         return events
 
-    def check(self, key: str) -> Tuple[bool, int, float]:
+    def check(self, key: str) -> tuple[bool, int, float]:
         """
         Record an event for ``key`` if allowed.
 
@@ -93,9 +95,9 @@ class RateLimitMiddleware:
         self,
         app: ASGIApp,
         limiter: SlidingWindowRateLimiter,
-        paths: Tuple[str, ...],
+        paths: tuple[str, ...],
         *,
-        methods: Tuple[str, ...] = ("POST",),
+        methods: tuple[str, ...] = ("POST",),
         key_func: Optional[Callable[[Scope], str]] = None,
     ) -> None:
         self.app = app

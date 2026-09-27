@@ -9,6 +9,7 @@ Supports serialization to/from dictionary for storage.
 from datetime import datetime
 from typing import Optional
 
+
 class Task:
     def __init__(self, title: str, description: str, due_date: str, completed: bool = False):
         """
@@ -68,7 +69,7 @@ class Task:
             "description": self._description,
             "due_date": self.due_date,
             "completed": self._completed,
-            "created_at": self._created_at.strftime("%Y-%m-%d %H:%M:%S")
+            "created_at": self._created_at.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
     @staticmethod
@@ -86,7 +87,7 @@ class Task:
             title=data["title"],
             description=data["description"],
             due_date=data["due_date"],
-            completed=data.get("completed", False)
+            completed=data.get("completed", False),
         )
         task.id = data.get("id")
         return task

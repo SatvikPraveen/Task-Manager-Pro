@@ -5,8 +5,8 @@ Unit tests for the User model in the Task Manager PRO application.
 Tests user creation and access control for sensitive user attributes like password.
 """
 
-import pytest
 from task_manager_pro.models.user import User
+
 
 def test_user_creation():
     """
@@ -14,6 +14,7 @@ def test_user_creation():
     """
     user = User("satvik", "secret")
     assert user.username == "satvik"
+
 
 # def test_user_password_not_exposed():
 #     """

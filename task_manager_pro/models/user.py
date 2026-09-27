@@ -9,8 +9,15 @@ Excludes raw password from serialization for safety.
 
 from typing import Optional
 
+
 class User:
-    def __init__(self, username: str, password: Optional[str] = None, email: Optional[str] = None, email_reminders_enabled: bool = True):
+    def __init__(
+        self,
+        username: str,
+        password: Optional[str] = None,
+        email: Optional[str] = None,
+        email_reminders_enabled: bool = True,
+    ):
         """
         Initializes a User instance.
 
@@ -81,7 +88,7 @@ class User:
         return {
             "username": self._username,
             "email": self._email,
-            "email_reminders_enabled": self._email_reminders_enabled
+            "email_reminders_enabled": self._email_reminders_enabled,
         }
 
     def __str__(self):

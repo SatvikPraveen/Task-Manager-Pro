@@ -1,47 +1,172 @@
-# 📦 Project Metadata
 [project]
-name = "task-manager-pro"  # Name of the package
-version = "0.3.0"  # Updated version with REST API
-description = "Advanced task manager with REST API, database, security, and email reminders"  # Short project summary
-authors = [{ name = "Satvik Praveen" }]  # List of authors
-readme = "README.md"  # Markdown file used as long description on PyPI
-requires-python = ">=3.10"  # Minimum required Python version
+name = "task-manager-pro"
+version = "0.4.0"
+description = "Task management CLI + REST API with JWT auth, SQL-side querying, urgency analytics, rate limiting and Prometheus metrics"
+authors = [{ name = "Satvik Praveen" }]
+readme = "README.md"
+license = { text = "GPL-3.0-or-later" }
+requires-python = ">=3.10"
+keywords = ["fastapi", "sqlalchemy", "task-manager", "rest-api", "jwt"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Office/Business :: Scheduling",
+    "Typing :: Typed",
+]
 
-# 📚 Dependencies required to run the project
 dependencies = [
-    "python-dotenv>=1.2,<2.0",  # For loading environment variables from .env
-    "typing-extensions>=4.9,<5.0",  # For backward-compatible typing features
-    "pydantic>=2.5,<3.0",  # Data validation using type hints
-    "pydantic-settings>=2.0,<3.0",  # Pydantic settings management
-    "email-validator>=2.0,<3.0",  # Required for pydantic's EmailStr type
-    "rich>=13.0,<16.0",  # For pretty-printing and enhanced terminal outputs
-    "sqlalchemy>=2.0,<3.0",  # SQL toolkit and ORM
-    "alembic>=1.13,<2.0",  # Database migration tool
-    "bcrypt>=4.0,<6.0",  # Password hashing library
-    "pyjwt>=2.8,<3.0",  # JSON Web Token library
-    "fastapi>=0.100,<1.0",  # Modern web framework for REST API
-    "uvicorn[standard]>=0.23,<1.0",  # ASGI server for FastAPI
+    "python-dotenv>=1.2,<2.0",       # .env loading (via pydantic-settings)
+    "typing-extensions>=4.9,<5.0",   # Backported typing features
+    "pydantic>=2.5,<3.0",            # Data validation
+    "pydantic-settings>=2.0,<3.0",   # Typed settings from the environment
+    "email-validator>=2.0,<3.0",     # pydantic EmailStr
+    "rich>=13.0,<16.0",              # CLI output
+    "sqlalchemy>=2.0,<3.0",          # ORM
+    "alembic>=1.13,<2.0",            # Schema migrations
+    "bcrypt>=4.0,<6.0",              # Password hashing
+    "pyjwt>=2.8,<3.0",               # JWT
+    "fastapi>=0.100,<1.0",           # Web framework
+    "uvicorn[standard]>=0.23,<1.0",  # ASGI server
     "prometheus-client>=0.20,<1.0",  # /metrics exposition
 ]
 
-# 🧪 Optional dependency groups
 [project.optional-dependencies]
 test = [
-    "pytest>=8.0,<10.0",  # Testing framework
-    "pytest-cov>=5.0,<8.0",  # Coverage reporting for pytest
-    "pytest-asyncio>=0.23,<2.0",  # Async test support for pytest
-    "httpx>=0.27,<1.0",  # HTTP client for testing
+    "pytest>=8.0,<10.0",
+    "pytest-cov>=5.0,<8.0",
+    "pytest-asyncio>=0.23,<2.0",
+    "pytest-timeout>=2.3,<3.0",
+    "hypothesis>=6.100,<7.0",        # Property-based tests for the analytics package
+    "httpx>=0.27,<1.0",              # FastAPI TestClient transport
+]
+dev = [
+    "task-manager-pro[test]",
+    "ruff>=0.6,<1.0",
+    "mypy>=1.10,<3.0",
+    "bandit>=1.7,<2.0",
+    "pip-audit>=2.7,<3.0",
+    "pre-commit>=3.7,<5.0",
+]
+postgres = [
+    "psycopg[binary]>=3.1,<4.0",
 ]
 
-# 🚀 CLI entry point definition
+[project.urls]
+Homepage = "https://github.com/SatvikPraveen/Task-Manager-Pro"
+Issues = "https://github.com/SatvikPraveen/Task-Manager-Pro/issues"
+Changelog = "https://github.com/SatvikPraveen/Task-Manager-Pro/blob/main/CHANGELOG.md"
+
 [project.scripts]
-task-manager = "task_manager_pro.cli:main"  # Allows running `task-manager` from terminal
+task-manager = "task_manager_pro.cli:main"
 
-# 🔧 Build system configuration (PEP 517)
 [build-system]
-requires = ["setuptools>=61.0"]  # Build tool requirement
-build-backend = "setuptools.build_meta"  # Backend to build the project
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-# 📁 Tells setuptools where to find the source code
-[tool.setuptools]
-packages = ["task_manager_pro"]  # Main package directory to include
+[tool.setuptools.packages.find]
+include = ["task_manager_pro*"]
+
+# ─── Ruff: lint + format ────────────────────────────────────────────────────
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["migrations/versions", ".venv", "*.md"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # bugbear
+    "UP",       # pyupgrade
+    "S",        # bandit-style security checks
+    "SIM",      # simplify
+    "RUF",      # ruff-specific
+    "T20",      # no stray print() in library code
+]
+ignore = [
+    "E501",     # line length is handled by the formatter
+    "B008",     # FastAPI's Depends()/Query() in defaults is idiomatic
+    "RUF012",   # mutable class attributes (pydantic models)
+    "S101",     # assert is fine in tests (and only there, see per-file-ignores)
+    "UP007", "UP045",  # keep Optional[...] in signatures for readability
+    "SIM108",   # ternaries are not always clearer
+    "RUF001", "RUF002",  # Greek letters / minus signs in docstrings are intentional (math notation)
+    "S105", "S106",      # "token_type = 'bearer'" is not a hardcoded password
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S", "T20", "B011", "RUF001"]
+"task_manager_pro/cli.py" = ["T20"]
+"task_manager_pro/services/*" = ["T20"]
+"task_manager_pro/send_reminders.py" = ["T20"]
+"task_manager_pro/utils/decorators.py" = ["T20"]
+"task_manager_pro/utils/logger_context.py" = ["T20"]
+"task_manager_pro/utils/migration.py" = ["T20"]
+"demo_api.py" = ["T20", "S", "E722"]
+"scripts/*" = ["T20", "S"]
+"benchmarks/*" = ["T20", "S"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["task_manager_pro", "tests"]
+
+# ─── mypy ───────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.10"
+packages = ["task_manager_pro"]
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+no_implicit_optional = true
+check_untyped_defs = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["task_manager_pro.api.*", "task_manager_pro.analytics.*", "task_manager_pro.observability.*", "task_manager_pro.config", "task_manager_pro.storage.*", "task_manager_pro.utils.security", "task_manager_pro.utils.emailer"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+
+# ─── pytest / coverage ──────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --timeout=120"
+filterwarnings = [
+    "error::DeprecationWarning:task_manager_pro",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: long-running tests (deselect with -m 'not slow')",
+]
+
+[tool.coverage.run]
+source = ["task_manager_pro"]
+branch = true
+omit = [
+    "task_manager_pro/cli.py",             # interactive; exercised manually
+    "task_manager_pro/send_reminders.py",  # cron entry point with module-level side effects
+    "task_manager_pro/utils/migration.py", # one-off JSON→SQL migration script
+]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+# ─── bandit ─────────────────────────────────────────────────────────────────
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "migrations"]
+skips = ["B101"]

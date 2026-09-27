@@ -7,11 +7,12 @@ enabling flexibility to support different storage mechanisms (e.g., JSON, SQLite
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
+
 
 class StorageInterface(ABC):
     @abstractmethod
-    def load_data(self) -> Dict[str, Any]:
+    def load_data(self) -> dict[str, Any]:
         """
         Load all data from the storage backend.
 
@@ -21,7 +22,7 @@ class StorageInterface(ABC):
         pass
 
     @abstractmethod
-    def save_data(self, data: Dict[str, Any]) -> None:
+    def save_data(self, data: dict[str, Any]) -> None:
         """
         Save all data to the storage backend.
 

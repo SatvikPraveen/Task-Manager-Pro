@@ -7,14 +7,15 @@ Uses decorators for logging, JSON/DB storage interface, and optional email remin
 """
 
 import uuid
+from datetime import datetime
 from typing import Optional
+
 from task_manager_pro.models.task import Task
 from task_manager_pro.models.user import User
 from task_manager_pro.storage.interface import StorageInterface
 from task_manager_pro.utils.decorators import log_action
-from task_manager_pro.utils.session import save_session, load_session, clear_session
-from datetime import datetime
 from task_manager_pro.utils.emailer import send_email_reminder
+from task_manager_pro.utils.session import clear_session, load_session, save_session
 
 
 class TaskManager:
@@ -41,7 +42,8 @@ class TaskManager:
         """
         today = datetime.today().date()
         due_tasks = [
-            t for t in self.data["tasks"]
+            t
+            for t in self.data["tasks"]
             if t["user"] == self.current_user.username
             and not t["completed"]
             and datetime.strptime(t["due_date"], "%Y-%m-%d").date() <= today
@@ -57,11 +59,7 @@ class TaskManager:
             subject = "🔔 Task Due Reminder"
             message = "\n".join([f"{t['title']} — Due: {t['due_date']}" for t in due_tasks])
             try:
-                send_email_reminder(
-                    to_email=self.current_user._email,
-                    subject=subject,
-                    body=message
-                )
+                send_email_reminder(to_email=self.current_user._email, subject=subject, body=message)
             except Exception as e:
                 print(f"⚠️ Could not send email reminder: {e}")
 
@@ -123,7 +121,9 @@ class TaskManager:
         print(f"🆔 Task ID: {task.id}")
 
     @log_action
-    def update_task(self, task_id: str, title: Optional[str] = None, desc: Optional[str] = None, due: Optional[str] = None):
+    def update_task(
+        self, task_id: str, title: Optional[str] = None, desc: Optional[str] = None, due: Optional[str] = None
+    ):
         """
         Updates an existing task's title, description, or due date.
 
@@ -194,13 +194,13 @@ class TaskManager:
                 print(f"{status} {task['title']} - Due: {task['due_date']}")
                 if verbose:
                     print(f"    📝 {task['description']}")
-        
+
         if summary:
             total = len(tasks)
             completed = sum(1 for t in tasks if t["completed"])
             pending = total - completed
             print(f"\n📊 Summary:\nTotal: {total} | Completed: {completed} | Pending: {pending}")
-        
+
         self._print_due_reminders()
 
     @log_action
@@ -238,7 +238,7 @@ class TaskManager:
         """
         if not self.current_user:
             print("❌ Please login first.")
-            return 
+            return
         self._print_due_reminders()
 
     @log_action
@@ -250,7 +250,7 @@ class TaskManager:
         if not self.current_user:
             print("❌ Please login first.")
             return
-        
+
         updated_value = self.current_user.toggle_email_reminders()
         print(f"🔧 Email reminders {'enabled' if updated_value else 'disabled'}.")
 
@@ -258,5 +258,5 @@ class TaskManager:
             if u["username"] == self.current_user.username:
                 u["email_reminders_enabled"] = updated_value
                 break
-        
+
         self.storage.save_data(self.data)

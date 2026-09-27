@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -44,9 +44,7 @@ class UserModel(Base):
         DateTime(timezone=True), default=_utcnow, onupdate=_utcnow, nullable=False
     )
 
-    tasks: Mapped[List["TaskModel"]] = relationship(
-        "TaskModel", back_populates="user", cascade="all, delete-orphan"
-    )
+    tasks: Mapped[list[TaskModel]] = relationship("TaskModel", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<UserModel(id={self.id}, username={self.username}, email={self.email})>"
@@ -76,7 +74,7 @@ class TaskModel(Base):
     )
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    user: Mapped["UserModel"] = relationship("UserModel", back_populates="tasks")
+    user: Mapped[UserModel] = relationship("UserModel", back_populates="tasks")
 
     def __repr__(self) -> str:
         return f"<TaskModel(id={self.id}, title={self.title}, completed={self.completed})>"

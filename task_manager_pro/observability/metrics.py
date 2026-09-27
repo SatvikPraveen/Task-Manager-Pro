@@ -16,6 +16,7 @@ The exposition endpoint is mounted at ``/metrics`` by the application when
 from __future__ import annotations
 
 import time
+
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 from starlette.requests import Request
 from starlette.responses import Response
@@ -82,4 +83,4 @@ def metrics_endpoint(_: Request) -> Response:
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
-__all__ = ["MetricsMiddleware", "metrics_endpoint", "REQUEST_COUNT", "REQUEST_LATENCY"]
+__all__ = ["REQUEST_COUNT", "REQUEST_LATENCY", "MetricsMiddleware", "metrics_endpoint"]

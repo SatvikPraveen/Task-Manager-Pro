@@ -14,9 +14,10 @@ Listing is done in SQL (filter → order → offset/limit) with a separate
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import date, datetime, timezone
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Optional
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -35,7 +36,7 @@ SORTABLE_COLUMNS = {
 }
 
 
-def _to_datetime(value: "str | date | datetime") -> datetime:
+def _to_datetime(value: str | date | datetime) -> datetime:
     """Normalise a due date (string, date or datetime) to a UTC midnight datetime."""
     if isinstance(value, datetime):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
@@ -48,8 +49,8 @@ def _to_datetime(value: "str | date | datetime") -> datetime:
 class SQLStorage(StorageInterface):
     """SQL-backed repository for users and tasks."""
 
-    def __init__(self, session_factory: Optional["sessionmaker[Session]"] = None, *, create_tables: bool = True):
-        self._session_factory: "sessionmaker[Session]" = session_factory or SessionLocal
+    def __init__(self, session_factory: Optional[sessionmaker[Session]] = None, *, create_tables: bool = True):
+        self._session_factory: sessionmaker[Session] = session_factory or SessionLocal
         if create_tables:
             bind = self._session_factory.kw.get("bind", engine)
             init_db(bind)
@@ -69,7 +70,7 @@ class SQLStorage(StorageInterface):
     # ------------------------------------------------------------------ #
     # StorageInterface compatibility                                     #
     # ------------------------------------------------------------------ #
-    def load_data(self) -> Dict[str, Any]:
+    def load_data(self) -> dict[str, Any]:
         """Dump all users and tasks as plain dicts (interface compatibility)."""
         with self._session() as db:
             users = db.scalars(select(UserModel)).all()
@@ -79,7 +80,7 @@ class SQLStorage(StorageInterface):
                 "tasks": [self._task_model_to_dict(t) for t in tasks],
             }
 
-    def save_data(self, data: Dict[str, Any]) -> None:
+    def save_data(self, data: dict[str, Any]) -> None:
         """No-op: SQL operations persist immediately."""
 
     # ------------------------------------------------------------------ #
@@ -146,7 +147,7 @@ class SQLStorage(StorageInterface):
         user_id: str,
         title: str,
         description: Optional[str],
-        due_date: "str | date | datetime",
+        due_date: str | date | datetime,
         priority: str = "medium",
     ) -> TaskModel:
         with self._session() as db:
@@ -191,7 +192,7 @@ class SQLStorage(StorageInterface):
         sort_desc: bool = False,
         skip: int = 0,
         limit: int = 10,
-    ) -> Tuple[List[TaskModel], int]:
+    ) -> tuple[list[TaskModel], int]:
         """
         Filter, sort and paginate a user's tasks in SQL.
 
@@ -230,7 +231,7 @@ class SQLStorage(StorageInterface):
                 db.expunge(task)
             return page, int(total)
 
-    def get_user_tasks(self, user_id: str, completed: Optional[bool] = None) -> List[TaskModel]:
+    def get_user_tasks(self, user_id: str, completed: Optional[bool] = None) -> list[TaskModel]:
         """All of a user's tasks ordered by due date (no pagination)."""
         with self._session() as db:
             stmt = select(TaskModel).where(TaskModel.user_id == user_id)
@@ -272,7 +273,7 @@ class SQLStorage(StorageInterface):
             db.delete(task)
             return True
 
-    def get_due_tasks(self, before_date: Optional[str] = None) -> List[TaskModel]:
+    def get_due_tasks(self, before_date: Optional[str] = None) -> list[TaskModel]:
         """Pending tasks due on or before ``before_date`` (default: today, UTC)."""
         cutoff = _to_datetime(before_date) if before_date else datetime.now(timezone.utc)
         with self._session() as db:
@@ -290,7 +291,7 @@ class SQLStorage(StorageInterface):
     # Serialisation helpers                                              #
     # ------------------------------------------------------------------ #
     @staticmethod
-    def _user_model_to_dict(user: UserModel) -> Dict[str, Any]:
+    def _user_model_to_dict(user: UserModel) -> dict[str, Any]:
         return {
             "id": user.id,
             "username": user.username,
@@ -301,7 +302,7 @@ class SQLStorage(StorageInterface):
         }
 
     @staticmethod
-    def _task_model_to_dict(task: TaskModel) -> Dict[str, Any]:
+    def _task_model_to_dict(task: TaskModel) -> dict[str, Any]:
         return {
             "id": task.id,
             "user_id": task.user_id,

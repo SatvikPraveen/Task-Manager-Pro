@@ -16,7 +16,7 @@ change configuration call :func:`reset_settings` after mutating ``os.environ``.
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import List, Literal, Optional
+from typing import Literal, Optional
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -97,7 +97,7 @@ class Settings(BaseSettings):
         return level
 
     @property
-    def cors_origin_list(self) -> List[str]:
+    def cors_origin_list(self) -> list[str]:
         """CORS origins as a list, ignoring blanks."""
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

@@ -23,7 +23,9 @@ DEFAULT_HEADERS = {
 
 
 class SecurityHeadersMiddleware:
-    def __init__(self, app: ASGIApp, exempt_prefixes: tuple[str, ...] = ("/api/docs", "/api/redoc", "/docs", "/redoc")) -> None:
+    def __init__(
+        self, app: ASGIApp, exempt_prefixes: tuple[str, ...] = ("/api/docs", "/api/redoc", "/docs", "/redoc")
+    ) -> None:
         self.app = app
         self.exempt_prefixes = exempt_prefixes
 

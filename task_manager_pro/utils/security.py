@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import bcrypt
 import jwt
@@ -57,7 +57,7 @@ def verify_password_dummy(plain_password: str) -> None:
     bcrypt.checkpw(plain_password.encode("utf-8"), _DUMMY_HASH.encode("utf-8"))
 
 
-def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a signed JWT access token.
 
@@ -68,7 +68,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     settings = get_settings()
     now = datetime.now(timezone.utc)
     lifetime = expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
-    to_encode: Dict[str, Any] = dict(data)
+    to_encode: dict[str, Any] = dict(data)
     to_encode.update(
         {
             "iat": now,
@@ -84,7 +84,7 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     )
 
 
-def decode_token(token: str) -> Optional[Dict[str, Any]]:
+def decode_token(token: str) -> Optional[dict[str, Any]]:
     """
     Decode and verify a JWT.
 
@@ -93,7 +93,7 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
     """
     settings = get_settings()
     try:
-        payload: Dict[str, Any] = jwt.decode(
+        payload: dict[str, Any] = jwt.decode(
             token,
             settings.secret_key.get_secret_value(),
             algorithms=[settings.jwt_algorithm],

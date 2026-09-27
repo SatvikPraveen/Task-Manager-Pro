@@ -6,8 +6,8 @@ Validates task creation, status updates, string representations,
 and dictionary conversion functionality using pytest.
 """
 
-import pytest
 from task_manager_pro.models.task import Task
+
 
 def test_task_creation():
     """
@@ -20,6 +20,7 @@ def test_task_creation():
     assert task.due_date == "2025-12-01"
     assert not task.completed
 
+
 def test_mark_task_completed():
     """
     Test the mark_complete() method to ensure task status is updated.
@@ -27,6 +28,7 @@ def test_mark_task_completed():
     task = Task("Test", "This is a test", "2025-07-01")
     task.mark_complete()
     assert task.completed
+
 
 def test_task_string_representation():
     """
@@ -36,6 +38,7 @@ def test_task_string_representation():
     task = Task("Test", "Try string", "2025-01-01")
     assert "Test" in str(task)
     assert "Pending" in str(task)
+
 
 def test_task_dict_conversion():
     """

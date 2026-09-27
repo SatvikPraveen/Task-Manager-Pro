@@ -7,7 +7,6 @@ Tests authentication, task CRUD, and user management.
 
 import pytest
 from fastapi.testclient import TestClient
-import os
 
 from task_manager_pro.api.main import app
 from task_manager_pro.storage.database import Base, engine
@@ -74,7 +73,7 @@ def test_register_duplicate_user(client):
             "email": "test@example.com",
         },
     )
-    
+
     # Try to register again
     response = client.post(
         "/api/auth/register",
@@ -99,7 +98,7 @@ def test_login_valid_credentials(client):
             "email": "test@example.com",
         },
     )
-    
+
     # Login
     response = client.post(
         "/api/auth/login",
@@ -126,7 +125,7 @@ def test_login_invalid_credentials(client):
             "email": "test@example.com",
         },
     )
-    
+
     # Try login with wrong password
     response = client.post(
         "/api/auth/login",
@@ -151,7 +150,7 @@ def test_create_task_authenticated(client):
             "email": "test@example.com",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={
@@ -160,7 +159,7 @@ def test_create_task_authenticated(client):
         },
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create task
     response = client.post(
         "/api/tasks",
@@ -202,25 +201,25 @@ def test_list_tasks(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create multiple tasks
     for i in range(3):
         client.post(
             "/api/tasks",
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "title": f"Task {i+1}",
-                "description": f"Desc {i+1}",
+                "title": f"Task {i + 1}",
+                "description": f"Desc {i + 1}",
                 "due_date": "2025-12-31",
             },
         )
-    
+
     # List tasks
     response = client.get(
         "/api/tasks",
@@ -242,25 +241,25 @@ def test_list_tasks_paginated(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create 15 tasks
     for i in range(15):
         client.post(
             "/api/tasks",
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "title": f"Task {i+1}",
-                "description": f"Desc {i+1}",
+                "title": f"Task {i + 1}",
+                "description": f"Desc {i + 1}",
                 "due_date": "2025-12-31",
             },
         )
-    
+
     # Get page 1 (limit 10)
     response = client.get(
         "/api/tasks?skip=0&limit=10",
@@ -283,13 +282,13 @@ def test_get_task_detail(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create task
     create_resp = client.post(
         "/api/tasks",
@@ -301,7 +300,7 @@ def test_get_task_detail(client):
         },
     )
     task_id = create_resp.json()["id"]
-    
+
     # Get task
     response = client.get(
         f"/api/tasks/{task_id}",
@@ -323,13 +322,13 @@ def test_update_task(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create task
     create_resp = client.post(
         "/api/tasks",
@@ -341,7 +340,7 @@ def test_update_task(client):
         },
     )
     task_id = create_resp.json()["id"]
-    
+
     # Update task
     response = client.put(
         f"/api/tasks/{task_id}",
@@ -367,13 +366,13 @@ def test_delete_task(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Create task
     create_resp = client.post(
         "/api/tasks",
@@ -385,7 +384,7 @@ def test_delete_task(client):
         },
     )
     task_id = create_resp.json()["id"]
-    
+
     # Delete task
     response = client.delete(
         f"/api/tasks/{task_id}",
@@ -406,13 +405,13 @@ def test_get_current_user(client):
             "email": "test@example.com",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Get user
     response = client.get(
         "/api/users/me",
@@ -434,20 +433,20 @@ def test_toggle_email_reminders(client):
             "password": "securepass123",
         },
     )
-    
+
     login_resp = client.post(
         "/api/auth/login",
         json={"username": "testuser", "password": "securepass123"},
     )
     token = login_resp.json()["access_token"]
-    
+
     # Check initial state
     resp1 = client.get(
         "/api/users/me",
         headers={"Authorization": f"Bearer {token}"},
     )
     initial_state = resp1.json()["email_reminders_enabled"]
-    
+
     # Toggle
     response = client.post(
         "/api/users/me/toggle-reminders",
