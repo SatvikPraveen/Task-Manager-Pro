@@ -163,7 +163,7 @@ class RateLimitMiddleware:
     def __init__(
         self,
         app: ASGIApp,
-        limiter: SlidingWindowRateLimiter,
+        limiter: RateLimiter,
         paths: tuple[str, ...],
         *,
         methods: tuple[str, ...] = ("POST",),
