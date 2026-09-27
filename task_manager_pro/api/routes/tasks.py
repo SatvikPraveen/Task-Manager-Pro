@@ -1,16 +1,31 @@
 """
 api/routes/tasks.py
 
-Task management endpoints for CRUD operations.
+Task CRUD with server-side filtering, sorting and pagination.
 """
 
-from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import Any, Dict, Optional
-from task_manager_pro.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse, TaskPriority
+from __future__ import annotations
+
+import math
+from datetime import date
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
 from task_manager_pro.api.dependencies import get_current_user, get_storage
+from task_manager_pro.schemas.task import (
+    TaskCreate,
+    TaskListResponse,
+    TaskPriority,
+    TaskResponse,
+    TaskSortField,
+    TaskUpdate,
+)
 from task_manager_pro.storage.sql_storage import SQLStorage
 
 router = APIRouter()
+
+_NOT_FOUND = HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
@@ -18,84 +33,56 @@ async def create_task(
     task_data: TaskCreate,
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
-):
-    """
-    Create a new task for the current user.
-    
-    Args:
-        task_data (TaskCreate): Task creation data
-        user_id (str): Current user ID from JWT
-        storage (SQLStorage): Database storage
-        
-    Returns:
-        TaskResponse: Created task
-    """
-    try:
-        task = storage.create_task(
-            user_id=user_id,
-            title=task_data.title,
-            description=task_data.description,
-            due_date=task_data.due_date,
-            priority=task_data.priority.value,
-        )
-        return TaskResponse(
-            id=task.id,
-            title=task.title,
-            description=task.description,
-            due_date=task.due_date.strftime("%Y-%m-%d"),
-            priority=TaskPriority(task.priority),
-            completed=task.completed,
-            created_at=task.created_at.isoformat(),
-            updated_at=task.updated_at.isoformat(),
-            completed_at=task.completed_at.isoformat() if task.completed_at else None,
-        )
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+) -> TaskResponse:
+    """Create a task owned by the caller."""
+    task = storage.create_task(
+        user_id=user_id,
+        title=task_data.title,
+        description=task_data.description,
+        due_date=task_data.due_date,
+        priority=task_data.priority.value,
+    )
+    return TaskResponse.from_model(task)
 
 
 @router.get("", response_model=TaskListResponse)
 async def list_tasks(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(10, ge=1, le=100),
-    completed: Optional[bool] = None,
+    skip: int = Query(0, ge=0, description="Number of tasks to skip"),
+    limit: int = Query(10, ge=1, le=100, description="Page size"),
+    completed: Optional[bool] = Query(None, description="Filter by completion state"),
+    priority: Optional[TaskPriority] = Query(None, description="Filter by priority"),
+    due_before: Optional[date] = Query(None, description="Only tasks due on or before this date"),
+    due_after: Optional[date] = Query(None, description="Only tasks due on or after this date"),
+    q: Optional[str] = Query(None, min_length=1, max_length=255, description="Case-insensitive search in title/description"),
+    sort_by: TaskSortField = Query(TaskSortField.DUE_DATE, description="Sort column"),
+    sort_desc: bool = Query(False, description="Sort descending"),
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
-):
-    """
-    List tasks for the current user with pagination and filtering.
-    
-    Args:
-        skip (int): Number of tasks to skip
-        limit (int): Number of tasks to return
-        completed (Optional[bool]): Filter by completion status
-        user_id (str): Current user ID from JWT
-        storage (SQLStorage): Database storage
-        
-    Returns:
-        TaskListResponse: Paginated list of tasks
-    """
-    tasks = storage.get_user_tasks(user_id, completed=completed)
-    total = len(tasks)
-    paginated_tasks = tasks[skip : skip + limit]
-    
+) -> TaskListResponse:
+    """List the caller's tasks. Filtering, ordering and paging happen in SQL."""
+    if due_before is not None and due_after is not None and due_before < due_after:
+        raise HTTPException(
+            status_code=422,  # HTTP_422_* constant name differs across Starlette versions
+            detail="due_before must not be earlier than due_after",
+        )
+    page, total = storage.list_tasks(
+        user_id,
+        completed=completed,
+        priority=priority.value if priority else None,
+        due_before=due_before,
+        due_after=due_after,
+        search=q,
+        sort_by=sort_by.value,
+        sort_desc=sort_desc,
+        skip=skip,
+        limit=limit,
+    )
     return TaskListResponse(
         total=total,
-        tasks=[
-            TaskResponse(
-                id=task.id,
-                title=task.title,
-                description=task.description,
-                due_date=task.due_date.strftime("%Y-%m-%d"),
-                priority=TaskPriority(task.priority),
-                completed=task.completed,
-                created_at=task.created_at.isoformat(),
-                updated_at=task.updated_at.isoformat(),
-                completed_at=task.completed_at.isoformat() if task.completed_at else None,
-            )
-            for task in paginated_tasks
-        ],
+        tasks=[TaskResponse.from_model(t) for t in page],
         page=skip // limit + 1,
         page_size=limit,
+        pages=math.ceil(total / limit) if total else 0,
     )
 
 
@@ -104,37 +91,12 @@ async def get_task(
     task_id: str,
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
-):
-    """
-    Get a specific task by ID.
-    
-    Args:
-        task_id (str): Task ID
-        user_id (str): Current user ID from JWT
-        storage (SQLStorage): Database storage
-        
-    Returns:
-        TaskResponse: Task details
-        
-    Raises:
-        HTTPException: 404 if task not found or doesn't belong to user
-    """
-    task = storage.get_task(task_id)
-    
-    if not task or task.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    return TaskResponse(
-        id=task.id,
-        title=task.title,
-        description=task.description,
-        due_date=task.due_date.strftime("%Y-%m-%d"),
-        priority=TaskPriority(task.priority),
-        completed=task.completed,
-        created_at=task.created_at.isoformat(),
-        updated_at=task.updated_at.isoformat(),
-        completed_at=task.completed_at.isoformat() if task.completed_at else None,
-    )
+) -> TaskResponse:
+    """Fetch one of the caller's tasks. Other users' tasks are reported as 404."""
+    task = storage.get_user_task(user_id, task_id)
+    if not task:
+        raise _NOT_FOUND
+    return TaskResponse.from_model(task)
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
@@ -143,53 +105,17 @@ async def update_task(
     task_data: TaskUpdate,
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
-):
-    """
-    Update a task.
-    
-    Args:
-        task_id (str): Task ID
-        task_data (TaskUpdate): Updated task data
-        user_id (str): Current user ID from JWT
-        storage (SQLStorage): Database storage
-        
-    Returns:
-        TaskResponse: Updated task
-        
-    Raises:
-        HTTPException: 404 if task not found
-    """
-    task = storage.get_task(task_id)
-    if not task or task.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    update_dict: Dict[str, Any] = {}
-    if task_data.title is not None:
-        update_dict["title"] = task_data.title
-    if task_data.description is not None:
-        update_dict["description"] = task_data.description
-    if task_data.due_date is not None:
-        update_dict["due_date"] = task_data.due_date
-    if task_data.priority is not None:
-        update_dict["priority"] = task_data.priority.value
-    if task_data.completed is not None:
-        update_dict["completed"] = task_data.completed
-
-    updated_task = storage.update_task(task_id, **update_dict)
-    if not updated_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    return TaskResponse(
-        id=updated_task.id,
-        title=updated_task.title,
-        description=updated_task.description,
-        due_date=updated_task.due_date.strftime("%Y-%m-%d"),
-        priority=TaskPriority(updated_task.priority),
-        completed=updated_task.completed,
-        created_at=updated_task.created_at.isoformat(),
-        updated_at=updated_task.updated_at.isoformat(),
-        completed_at=updated_task.completed_at.isoformat() if updated_task.completed_at else None,
-    )
+) -> TaskResponse:
+    """Partially update one of the caller's tasks."""
+    if not storage.get_user_task(user_id, task_id):
+        raise _NOT_FOUND
+    changes = task_data.model_dump(exclude_unset=True, exclude_none=True)
+    if "priority" in changes:
+        changes["priority"] = TaskPriority(changes["priority"]).value
+    updated = storage.update_task(task_id, **changes)
+    if not updated:
+        raise _NOT_FOUND
+    return TaskResponse.from_model(updated)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -197,20 +123,8 @@ async def delete_task(
     task_id: str,
     user_id: str = Depends(get_current_user),
     storage: SQLStorage = Depends(get_storage),
-):
-    """
-    Delete a task.
-    
-    Args:
-        task_id (str): Task ID
-        user_id (str): Current user ID from JWT
-        storage (SQLStorage): Database storage
-        
-    Raises:
-        HTTPException: 404 if task not found
-    """
-    task = storage.get_task(task_id)
-    if not task or task.user_id != user_id:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
+) -> None:
+    """Delete one of the caller's tasks."""
+    if not storage.get_user_task(user_id, task_id):
+        raise _NOT_FOUND
     storage.delete_task(task_id)

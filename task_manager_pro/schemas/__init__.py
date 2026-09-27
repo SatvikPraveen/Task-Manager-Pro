@@ -10,6 +10,7 @@ from task_manager_pro.schemas.user import (
     UserUpdate,
     UserResponse,
     UserWithToken,
+    TokenResponse,
 )
 
 from task_manager_pro.schemas.task import (
@@ -18,6 +19,7 @@ from task_manager_pro.schemas.task import (
     TaskResponse,
     TaskListResponse,
     TaskPriority,
+    TaskSortField,
 )
 
 __all__ = [
@@ -26,9 +28,11 @@ __all__ = [
     "UserUpdate",
     "UserResponse",
     "UserWithToken",
+    "TokenResponse",
     "TaskCreate",
     "TaskUpdate",
     "TaskResponse",
     "TaskListResponse",
     "TaskPriority",
+    "TaskSortField",
 ]

@@ -1,56 +1,75 @@
 """
 schemas/user.py
 
-Pydantic models for user request/response validation.
-Provides data validation and serialization for authentication and user management.
+Pydantic v2 request/response models for authentication and user profiles.
 """
 
-from pydantic import BaseModel, Field, EmailStr, validator
-from typing import Optional
+from __future__ import annotations
+
+import re
 from datetime import datetime
+from typing import Any, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+
+_USERNAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
 class UserRegister(BaseModel):
-    """Schema for user registration."""
+    """Registration payload."""
+
     username: str = Field(..., min_length=3, max_length=50, description="Unique username")
-    password: str = Field(..., min_length=8, max_length=255, description="User password (min 8 chars)")
-    email: Optional[EmailStr] = Field(None, description="User email address")
-    
-    @validator("username")
-    def username_alphanumeric(cls, v):
-        """Validate username contains only alphanumeric and underscores."""
-        if not all(c.isalnum() or c == "_" for c in v):
+    password: str = Field(..., min_length=8, max_length=255, description="Password (min 8 chars)")
+    email: Optional[EmailStr] = Field(None, description="Email address for reminders")
+
+    @field_validator("username")
+    @classmethod
+    def _username_alphanumeric(cls, value: str) -> str:
+        if not _USERNAME_RE.match(value):
             raise ValueError("Username must contain only alphanumeric characters and underscores")
-        return v
+        return value
 
 
 class UserLogin(BaseModel):
-    """Schema for user login."""
-    username: str = Field(..., description="Username")
-    password: str = Field(..., description="Password")
+    """Login payload."""
+
+    username: str = Field(..., max_length=50)
+    password: str = Field(..., max_length=255)
 
 
 class UserUpdate(BaseModel):
-    """Schema for updating user profile."""
+    """Profile update; every field optional."""
+
     email: Optional[EmailStr] = None
     email_reminders_enabled: Optional[bool] = None
 
 
 class UserResponse(BaseModel):
-    """Schema for user response in API."""
+    """Public view of a user."""
+
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     username: str
-    email: Optional[str]
+    email: Optional[str] = None
     email_reminders_enabled: bool
-    created_at: str
-    updated_at: str
-    
-    class Config:
-        from_attributes = True  # Allow ORM model conversion
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_model(cls, user: Any) -> "UserResponse":
+        return cls.model_validate(user)
 
 
-class UserWithToken(BaseModel):
-    """Schema for user response with JWT token."""
-    user: UserResponse
+class TokenResponse(BaseModel):
+    """A bare access token."""
+
     access_token: str
     token_type: str = "bearer"
+    expires_in: int = Field(..., description="Seconds until the token expires")
+
+
+class UserWithToken(TokenResponse):
+    """Login response: the user plus their access token."""
+
+    user: UserResponse
