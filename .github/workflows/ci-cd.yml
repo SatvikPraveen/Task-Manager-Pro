@@ -6,119 +6,157 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   # Test-only secret. Never use this value outside CI — production
   # deployments must set a real SECRET_KEY (see .env.template).
   SECRET_KEY: test-only-secret-key-not-for-production-use
+  BCRYPT_ROUNDS: "4"
+  RATE_LIMIT_ENABLED: "false"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
 
 jobs:
+  lint:
+    name: Lint, format, types, security
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Ruff (lint)
+        run: ruff check . --output-format github
+      - name: Ruff (format)
+        run: ruff format --check .
+      - name: mypy
+        run: mypy
+      - name: Bandit (fails on medium/high severity)
+        run: bandit -c pyproject.toml -r task_manager_pro -ll
+      - name: Migration drift check (models ⇔ alembic history)
+        env:
+          DATABASE_URL: sqlite:///./ci-migrations.db
+        run: |
+          alembic upgrade head
+          alembic check
+
   test:
+    name: Tests (py${{ matrix.python-version }}, ${{ matrix.database }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
-
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        database: [sqlite]
+        include:
+          - python-version: "3.12"
+            database: postgres
+    services:
+      postgres:
+        image: ${{ matrix.database == 'postgres' && 'postgres:16-alpine' || '' }}
+        env:
+          POSTGRES_USER: taskmanager
+          POSTGRES_PASSWORD: taskmanager
+          POSTGRES_DB: taskmanager
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U taskmanager"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements_dev.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements_dev.txt
-
-      - name: Lint with mypy
-        run: |
-          mypy task_manager_pro --ignore-missing-imports --no-error-summary
-
-      - name: Run tests with pytest
-        run: |
-          pytest tests/ -v --tb=short
-
-      - name: Generate coverage report
-        run: |
-          pytest tests/ --cov=task_manager_pro --cov-report=xml --cov-report=term-missing
-
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install
+        run: pip install -e ".[test,postgres]"
+      - name: Point tests at PostgreSQL
+        if: matrix.database == 'postgres'
+        run: echo "DATABASE_URL=postgresql+psycopg://taskmanager:taskmanager@localhost:5432/taskmanager" >> "$GITHUB_ENV"
+      - name: Apply migrations (PostgreSQL)
+        if: matrix.database == 'postgres'
+        run: alembic upgrade head
+      - name: Run tests with coverage gate
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        if: matrix.python-version == '3.12' && matrix.database == 'sqlite'
+        uses: codecov/codecov-action@v4
         with:
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: unittests
-          name: codecov-umbrella
+          fail_ci_if_error: false
 
-  build:
-    needs: test
+  audit:
+    name: Dependency vulnerability audit
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e ".[dev,postgres]"
+      - name: pip-audit
+        run: pip-audit --strict --desc on
 
-      - name: Build distribution packages
+  build:
+    name: Build distribution
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
         run: |
-          python -m pip install --upgrade build
+          pip install build twine
           python -m build
-
-      - name: Check distribution
-        run: |
-          python -m pip install twine
           twine check dist/*
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: distribution-packages
           path: dist/
 
-  security-scan:
+  docker:
+    name: Docker image
+    needs: [lint, test]
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Run security scan
-        run: |
-          python -m pip install bandit
-          # Fails the job on medium/high severity findings (-ll). Low-severity
-          # / informational findings are not gated.
-          bandit -r task_manager_pro -ll
-
-  docker-build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Docker image
+      - uses: docker/setup-buildx-action@v3
+      - name: Build
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: dockerfile
           push: false
-          tags: task-manager-pro:latest
+          load: true
+          tags: task-manager-pro:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test the image
+        run: |
+          docker run -d --name tmp -p 8000:8000 \
+            -e SECRET_KEY="$SECRET_KEY" -e DATABASE_URL=sqlite:////app/data/tasks.db \
+            task-manager-pro:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then echo; break; fi
+            sleep 1
+          done
+          curl -fsS http://localhost:8000/health | grep -q '"database":"ok"'
+          curl -fsS http://localhost:8000/metrics | grep -q http_requests_total
+          docker logs tmp | tail -20
+          docker rm -f tmp

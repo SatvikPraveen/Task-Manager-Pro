@@ -1,26 +1,35 @@
-# 🚫 Ignore Python cache directories and compiled bytecode
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# 🗃️ Ignore local SQLite or database files
-*.db
-
-# 🔐 Ignore environment variables and secret credentials
-.env
-
-# 🚫 Ignore virtual environments
+.git
+.github
 .venv
-
-# 📦 Ignore Python package metadata
-*.egg-info/
-
-# 🍎 Ignore macOS system files
-.DS_Store
-
-# 📄 Ignore all log files
+venv
+env
+__pycache__
+*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.hypothesis
+htmlcov
+coverage.xml
+.coverage*
+dist
+build
+*.egg-info
+*.db
+*.sqlite*
 *.log
-
-# 📁 Ignore logs directory
-logs/
+.env
+.env.*
+!.env.template
+.DS_Store
+.vscode
+.idea
+docs
+tests
+benchmarks
+scripts
+demo_api.py
+quick_test.sh
+sample_tasks.json
+*.md
+!README.md
