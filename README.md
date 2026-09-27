@@ -28,7 +28,7 @@ versioned migrations, and a **property-tested urgency model** that answers
 | **Security** | bcrypt (cost 12), JWT with `iat`/`jti`/`type`, constant-time login, sliding-window rate limit on auth endpoints, security headers, ownership enforced in SQL ([SECURITY.md](SECURITY.md)) |
 | **Observability** | `X-Request-ID` / `X-Process-Time` on every response, JSON logs with request IDs, `/metrics` (Prometheus, labelled by route template), `/health` with a DB probe |
 | **Persistence** | SQLAlchemy 2.0, SQLite or PostgreSQL, Alembic migrations with a drift check in CI, composite index on the hot query |
-| **Quality** | 76 tests incl. Hypothesis property tests, 80 % coverage gate, Ruff, mypy (pydantic plugin), Bandit, pip-audit, pre-commit; CI matrix 3.10–3.13 × SQLite + 3.12 × PostgreSQL 16 |
+| **Quality** | 88 tests incl. Hypothesis property tests, 93 % coverage (80 % gate), Ruff, mypy (pydantic plugin), Bandit, pip-audit, pre-commit; CI matrix 3.10–3.13 × SQLite + 3.12 × PostgreSQL 16 |
 | **Ops** | Multi-stage non-root Docker image (migrates then serves), `docker compose` with PostgreSQL + Prometheus, `Makefile`, benchmark and seed scripts |
 
 ---
@@ -139,7 +139,7 @@ task_manager_pro/
 ├── utils/                  # bcrypt/JWT, SMTP, CLI helpers
 ├── services/, models/, cli.py, send_reminders.py   # original JSON-backed CLI
 migrations/                 # Alembic environment + revisions
-tests/                      # 76 tests (unit, property-based, API integration)
+tests/                      # 88 tests (unit, property-based, API integration, CLI service)
 benchmarks/, scripts/       # bench_api.py, seed_data.py
 docs/                       # ARCHITECTURE.md, adr/, phase write-ups
 ```
