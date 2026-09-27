@@ -28,7 +28,7 @@ security: ## Bandit (medium+ severity fails)
 	bandit -c pyproject.toml -r task_manager_pro -ll
 
 audit: ## Known-vulnerability scan of installed dependencies
-	pip-audit --strict --desc on --skip-editable
+	pip-audit --desc on --skip-editable
 
 test: ## Full test-suite with coverage gate
 	pytest --cov --cov-report=term-missing --cov-report=xml

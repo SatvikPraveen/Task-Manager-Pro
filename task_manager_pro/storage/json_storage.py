@@ -14,7 +14,7 @@ from task_manager_pro.storage.interface import StorageInterface
 
 
 class JSONStorage(StorageInterface):
-    def __init__(self, filename="tasks.json"):
+    def __init__(self, filename: str = "tasks.json") -> None:
         """
         Initializes the JSONStorage instance.
 
@@ -25,7 +25,7 @@ class JSONStorage(StorageInterface):
         if not os.path.exists(self.filename):
             self._initialize_file()
 
-    def _initialize_file(self):
+    def _initialize_file(self) -> None:
         """
         Creates an empty JSON file with initial structure if it doesn't exist.
         """
@@ -45,7 +45,7 @@ class JSONStorage(StorageInterface):
         except FileNotFoundError:
             return {"users": [], "tasks": []}
 
-    def save_data(self, data):
+    def save_data(self, data: dict[str, Any]) -> None:
         """
         Saves the provided data dictionary to the JSON file.
 

@@ -35,16 +35,19 @@ class TaskManager:
             if user_data:
                 self.current_user = User(**user_data)
 
-    def _print_due_reminders(self):
+    def _print_due_reminders(self) -> None:
         """
         Checks and prints tasks that are due or overdue.
         Also sends an email reminder if user's email is configured.
         """
+        user = self.current_user
+        if user is None:
+            return
         today = datetime.today().date()
         due_tasks = [
             t
             for t in self.data["tasks"]
-            if t["user"] == self.current_user.username
+            if t["user"] == user.username
             and not t["completed"]
             and datetime.strptime(t["due_date"], "%Y-%m-%d").date() <= today
         ]
@@ -55,11 +58,11 @@ class TaskManager:
                 print(f"  🔔 {t['title']} — Due: {t['due_date']}")
 
         # Send optional email reminder
-        if due_tasks and self.current_user._email:
+        if due_tasks and user._email:
             subject = "🔔 Task Due Reminder"
             message = "\n".join([f"{t['title']} — Due: {t['due_date']}" for t in due_tasks])
             try:
-                send_email_reminder(to_email=self.current_user._email, subject=subject, body=message)
+                send_email_reminder(to_email=user._email, subject=subject, body=message)
             except Exception as e:
                 print(f"⚠️ Could not send email reminder: {e}")
 

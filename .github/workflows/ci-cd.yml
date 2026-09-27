@@ -109,7 +109,7 @@ jobs:
       - name: Install
         run: pip install -e ".[dev,postgres]"
       - name: pip-audit
-        run: pip-audit --strict --desc on --skip-editable
+        run: pip-audit --desc on --skip-editable  # exits non-zero on any vulnerability; --strict would also fail on the editable self-install
 
   build:
     name: Build distribution

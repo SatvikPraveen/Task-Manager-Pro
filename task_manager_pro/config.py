@@ -113,7 +113,7 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Return the process-wide cached :class:`Settings` instance."""
-    return Settings()  # type: ignore[call-arg]  # secret_key comes from env
+    return Settings()  # secret_key and friends come from the environment
 
 
 def reset_settings() -> None:
