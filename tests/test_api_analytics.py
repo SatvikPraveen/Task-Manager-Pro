@@ -6,7 +6,7 @@ Integration tests for /api/tasks/stats and /api/tasks/next.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -92,8 +92,11 @@ def test_task_named_stats_is_not_shadowed(client, headers):
 
 
 def test_next_calibrated_uses_history_when_enough_completions(client, headers):
-    today = date.today()
-    # Six tasks completed today, each due 4 days from now → median lead 4 days.
+    # Due dates are interpreted as midnight UTC and completed_at is "now", so the
+    # lead time is 4 days minus the elapsed fraction of the current UTC day,
+    # i.e. in (3, 4]. Use the UTC date so the bound holds in any local timezone.
+    today = datetime.now(timezone.utc).date()
+    # Six tasks completed today, each due 4 days from now → median lead in (3, 4] days.
     for i in range(6):
         t = create_task(client, headers, f"done {i}", (today + timedelta(days=4)).isoformat(), "medium")
         client.put(f"/api/tasks/{t['id']}", headers=headers, json={"completed": True})
@@ -105,7 +108,7 @@ def test_next_calibrated_uses_history_when_enough_completions(client, headers):
     body = client.get("/api/tasks/next", headers=headers, params={"calibrated": "true"}).json()
     params = body["params"]
     assert params["calibrated"] is True and params["samples"] == 6
-    assert 3.5 <= params["half_urgency_days"] <= 4.5
+    assert 3.0 < params["half_urgency_days"] <= 4.0
     assert [t["title"] for t in body["tasks"]] == ["Pending"]
     # Same task, larger horizon → it is "more urgent" under the calibrated curve.
     assert body["tasks"][0]["urgency"] > default["tasks"][0]["urgency"]
