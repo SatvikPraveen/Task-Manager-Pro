@@ -44,24 +44,31 @@ for user_data in data.get("users", []):
         print(f"[{username}] 💤 Reminder already sent today.")
         continue
 
-    # Filter due/overdue tasks for this user
-    due_tasks = [
-        t
-        for t in data.get("tasks", [])
-        if t["user"] == username
-        and not t["completed"]
-        and datetime.datetime.strptime(t["due_date"], "%Y-%m-%d").date() <= today
-    ]
+    # Filter due/overdue tasks for this user. A malformed row is reported and
+    # skipped so one bad task cannot stop reminders for every other user.
+    due_tasks = []
+    for t in data.get("tasks", []):
+        if t.get("user") != username or t.get("completed"):
+            continue
+        try:
+            due = datetime.datetime.strptime(str(t.get("due_date")), "%Y-%m-%d").date()
+        except ValueError:
+            print(f"[{username}] ⚠️ Skipping task {t.get('title')!r}: invalid due date {t.get('due_date')!r}")
+            continue
+        if due <= today:
+            due_tasks.append(t)
 
-    # If due tasks exist, send reminder and update last reminder date
+    # If due tasks exist, send reminder; record the date only if it was delivered,
+    # so a failed send is retried on the next run instead of silently dropped.
     if due_tasks:
         subject = "⏰ Daily Task Reminder"
         body = "\n".join([f"{t['title']} — Due: {t['due_date']}" for t in due_tasks])
-        send_email_reminder(to_email=email, subject=subject, body=body)
-        print(f"[{username}] 🔔 Reminder sent to {email} for {len(due_tasks)} task(s).")
-
-        user_data["last_reminder_date"] = str(today)
-        updated = True
+        if send_email_reminder(to_email=email, subject=subject, body=body):
+            print(f"[{username}] 🔔 Reminder sent to {email} for {len(due_tasks)} task(s).")
+            user_data["last_reminder_date"] = str(today)
+            updated = True
+        else:
+            print(f"[{username}] ❌ Reminder to {email} failed; will retry on the next run.")
     else:
         print(f"[{username}] ✅ No due tasks.")
 

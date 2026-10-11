@@ -91,6 +91,18 @@ class User:
             "email_reminders_enabled": self._email_reminders_enabled,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "User":
+        """
+        Builds a User from a stored record, ignoring keys it does not model
+        (e.g. ``last_reminder_date``, written by the reminder cron job).
+        """
+        return cls(
+            username=data["username"],
+            email=data.get("email"),
+            email_reminders_enabled=data.get("email_reminders_enabled", True),
+        )
+
     def __str__(self):
         """Returns a human-readable string representation of the user."""
         return f"User({self.username})"

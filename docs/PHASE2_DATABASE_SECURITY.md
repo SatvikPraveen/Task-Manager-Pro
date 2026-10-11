@@ -96,8 +96,14 @@ python -m task_manager_pro.utils.migration tasks.json
 
 Migration creates:
 
-- User accounts with temporary passwords
-- All tasks with their details
+- A user account per JSON user, each with a random one-time password that is
+  printed once at the end of the run; hand it over and have the user set a new
+  one with `PUT /api/users/me/password`
+- Those users' tasks, keeping `created_at`
+
+Usernames that already exist in the database are skipped together with their
+JSON tasks, so tasks never attach to someone else's account and re-running the
+migration does not duplicate anything.
 - Database: `tasks.db`
 
 ### 3. Use Updated CLI

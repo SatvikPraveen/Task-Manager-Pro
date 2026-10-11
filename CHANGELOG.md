@@ -6,8 +6,34 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `PUT /api/users/me/password` (`current_password`, `new_password`) to change a password.
+- `FORWARDED_ALLOW_IPS` for the container: the proxies whose `X-Forwarded-For` is trusted (default `127.0.0.1`).
+
+### Changed
+- CLI single-task commands share one ownership lookup and the `@require_login` decorator.
+- The JSON→SQL migration gives each account a random one-time password (printed once) instead of `<username>@temp123`, skips usernames that already exist together with their tasks (re-runs no longer duplicate), and keeps `created_at`.
+- `PUT /api/tasks/{id}` and `PUT /api/users/me` accept `null` to clear `description` / `email`; required fields reject `null` with `422`.
+- `JWT_ALGORITHM` is limited to `HS256`, `HS384` and `HS512`.
+
 ### Fixed
 - CLI: `complete` and `delete` now require a login and only act on the current user's own tasks, matching `update`. Previously any user who knew another user's task ID could complete or delete it (#6).
+- CLI: `list-tasks` while logged out listed every user's tasks.
+- Security: the auth rate limit was keyed on the client-supplied `X-Forwarded-For`, so a new header per request bypassed it; the container also trusted forwarded headers from any address.
+- Security: passwords over 72 bytes returned `500` at login for unknown usernames only, revealing which accounts exist; registration now rejects them with `422`.
+- Security: parallel refreshes of one token each received a new token; revocation is now atomic and happens before issuing.
+- Concurrent registration of one username returned `500` instead of `400`.
+- Due dates read one day early from PostgreSQL in a non-UTC session; SQLite timestamps were returned without a UTC offset.
+- Task search treated `%` and `_` as wildcards.
+- CLI: one run of `send_reminders` (which stores `last_reminder_date`) made every later command crash for that user.
+- CLI: email reminders were sent even after `toggle-email-reminders` turned them off.
+- `send_reminders` recorded failed sends as delivered, so they were never retried; one task with a bad date stopped reminders for everyone.
+- CLI: `update-task --due` stored any string, after which listing and reminders crashed; `add-task` crashed on a bad date.
+- CLI: `tasks.json` is written atomically, and an empty or corrupt file produces a clear error instead of a traceback.
+- CLI: `login` crashed without a terminal (cron, scripts, `docker run`) and ignored `--email` for existing users.
+- Migration: completed tasks were stamped with the migration time, skewing stats and calibration.
+- `demo_api.py` crashed at step 5 (it iterated the list response object) and depended on the undeclared `requests` package.
+- Docker: `task-manager` commands in the container failed to write their data files.
 
 ## [0.5.0] – 2026-09-27
 

@@ -154,7 +154,15 @@ class SQLStorage(StorageInterface):
         description: Optional[str],
         due_date: str | date | datetime,
         priority: str = "medium",
+        *,
+        completed: bool = False,
+        created_at: Optional[datetime] = None,
     ) -> TaskModel:
+        """
+        Insert a task. ``completed`` and ``created_at`` exist for importing history
+        (see ``utils.migration``); an imported completed task keeps ``completed_at``
+        empty because the real completion time is unknown.
+        """
         with self._session() as db:
             task = TaskModel(
                 user_id=user_id,
@@ -162,7 +170,10 @@ class SQLStorage(StorageInterface):
                 description=description,
                 due_date=_to_datetime(due_date),
                 priority=priority,
+                completed=completed,
             )
+            if created_at is not None:
+                task.created_at = created_at
             db.add(task)
             db.flush()
             db.refresh(task)

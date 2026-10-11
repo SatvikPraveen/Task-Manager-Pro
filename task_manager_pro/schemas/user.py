@@ -15,6 +15,14 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, mo
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
 
+def _check_bcrypt_length(value: str) -> str:
+    # bcrypt ignores everything past 72 bytes, so a longer password would
+    # silently be weaker than the user thinks. Multi-byte characters count extra.
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 bytes (UTF-8)")
+    return value
+
+
 class UserRegister(BaseModel):
     """Registration payload."""
 
@@ -32,11 +40,7 @@ class UserRegister(BaseModel):
     @field_validator("password")
     @classmethod
     def _password_fits_bcrypt(cls, value: str) -> str:
-        # bcrypt ignores everything past 72 bytes, so a longer password would
-        # silently be weaker than the user thinks. Multi-byte characters count extra.
-        if len(value.encode("utf-8")) > 72:
-            raise ValueError("Password must be at most 72 bytes (UTF-8)")
-        return value
+        return _check_bcrypt_length(value)
 
 
 class UserLogin(BaseModel):
@@ -44,6 +48,18 @@ class UserLogin(BaseModel):
 
     username: str = Field(..., max_length=50)
     password: str = Field(..., max_length=255)
+
+
+class PasswordChange(BaseModel):
+    """Replace the caller's password; the current one must be supplied."""
+
+    current_password: str = Field(..., max_length=255)
+    new_password: str = Field(..., min_length=8, max_length=255, description="New password (min 8 chars)")
+
+    @field_validator("new_password")
+    @classmethod
+    def _new_password_fits_bcrypt(cls, value: str) -> str:
+        return _check_bcrypt_length(value)
 
 
 class UserUpdate(BaseModel):

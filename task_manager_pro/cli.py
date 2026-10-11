@@ -10,7 +10,7 @@ Also handles user login, logout, and email reminder toggling via CLI.
 import argparse
 
 from task_manager_pro.services.task_manager import TaskManager
-from task_manager_pro.storage.json_storage import JSONStorage
+from task_manager_pro.storage.json_storage import CorruptDataError, JSONStorage
 
 
 def main():
@@ -64,7 +64,11 @@ def main():
 
     # Set up storage and task manager
     storage = JSONStorage()
-    manager = TaskManager(storage)
+    try:
+        manager = TaskManager(storage)
+    except CorruptDataError as exc:
+        print(f"❌ {exc}")
+        raise SystemExit(1) from exc
 
     # Route commands to corresponding methods
     if args.command == "add-task":

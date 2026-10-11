@@ -6,11 +6,12 @@ Profile endpoints for the authenticated user.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from task_manager_pro.api.dependencies import get_current_user, get_storage
-from task_manager_pro.schemas.user import UserResponse, UserUpdate
+from task_manager_pro.schemas.user import PasswordChange, UserResponse, UserUpdate
 from task_manager_pro.storage.sql_storage import SQLStorage
+from task_manager_pro.utils.security import verify_password
 
 router = APIRouter()
 
@@ -56,3 +57,19 @@ async def toggle_email_reminders(
     if not updated:
         raise _NOT_FOUND
     return UserResponse.from_model(updated)
+
+
+@router.put("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    body: PasswordChange,
+    user_id: str = Depends(get_current_user),
+    storage: SQLStorage = Depends(get_storage),
+) -> Response:
+    """Set a new password after checking the current one (e.g. replacing a migration one-time password)."""
+    user = storage.get_user(user_id)
+    if not user:
+        raise _NOT_FOUND
+    if not verify_password(body.current_password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+    storage.update_user(user_id, password=body.new_password)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

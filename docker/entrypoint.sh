@@ -2,6 +2,7 @@
 # Container entrypoint.
 #   serve            → alembic upgrade head, then uvicorn (default)
 #   migrate          → alembic upgrade head only
+#   task-manager ... → the JSON CLI, run from /app/data (writable; /app is not)
 #   anything else    → executed verbatim (e.g. `task-manager --help`)
 set -eu
 
@@ -16,6 +17,11 @@ case "${1:-serve}" in
     ;;
   migrate)
     exec alembic upgrade head
+    ;;
+  task-manager)
+    # The CLI keeps tasks.json and session.json in the working directory.
+    cd /app/data
+    exec "$@"
     ;;
   *)
     exec "$@"
