@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- CLI: `complete` and `delete` now require a login and only act on the current user's own tasks, matching `update`. Previously any user who knew another user's task ID could complete or delete it (#6).
+
 ## [0.5.0] – 2026-09-27
 
 ### Added

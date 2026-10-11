@@ -147,6 +147,37 @@ def test_add_update_complete_list_delete_cycle(manager, capsys):
     assert [t["id"] for t in JSONStorage("tasks.json").load_data()["tasks"]] == [second]
 
 
+def test_cannot_complete_or_delete_another_users_task(manager, capsys):
+    """Regression for #6: complete/delete must enforce ownership like update does."""
+    manager.login("alice", email="alice@example.com")
+    manager.add_task("Alice's task", "private", "2030-01-01")
+    (alice_task,) = _task_ids(manager)
+
+    manager.login("bob", email="bob@example.com")
+    capsys.readouterr()
+    manager.mark_task_complete(alice_task)
+    manager.delete_task(alice_task)
+    out = capsys.readouterr().out
+    assert out.count("does not belong to current user") == 2
+
+    task = next(t for t in manager.data["tasks"] if t["id"] == alice_task)
+    assert task["completed"] is False
+    assert [t["id"] for t in JSONStorage("tasks.json").load_data()["tasks"]] == [alice_task]
+
+
+def test_complete_and_delete_require_login(manager, capsys):
+    manager.login("alice", email="alice@example.com")
+    manager.add_task("Write", "the paper", "2030-01-01")
+    (task_id,) = _task_ids(manager)
+    manager.logout()
+
+    capsys.readouterr()
+    manager.mark_task_complete(task_id)
+    manager.delete_task(task_id)
+    assert capsys.readouterr().out.count("Please login first") == 2
+    assert manager.data["tasks"][0]["completed"] is False
+
+
 def test_list_tasks_empty_and_reminders_for_due_tasks(manager, capsys):
     manager.login("alice", email="alice@example.com")
     manager.list_tasks("all")

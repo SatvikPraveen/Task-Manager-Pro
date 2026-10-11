@@ -162,13 +162,17 @@ class TaskManager:
         Args:
             task_id (str): Unique task identifier.
         """
+        if not self.current_user:
+            print("❌ Please login first.")
+            return
+
         for task in self.data["tasks"]:
-            if task["id"] == task_id:
+            if task["id"] == task_id and task["user"] == self.current_user.username:
                 task["completed"] = True
                 self.storage.save_data(self.data)
                 print(f"✅ Task '{task['title']}' marked as completed.")
                 return
-        print("❌ Task not found.")
+        print("❌ Task not found or does not belong to current user.")
 
     @log_action
     def list_tasks(self, filter_status: str, verbose: bool = False, summary: bool = False):
@@ -214,13 +218,17 @@ class TaskManager:
         Args:
             task_id (str): Unique task identifier.
         """
+        if not self.current_user:
+            print("❌ Please login first.")
+            return
+
         for i, task in enumerate(self.data["tasks"]):
-            if task["id"] == task_id:
+            if task["id"] == task_id and task["user"] == self.current_user.username:
                 deleted = self.data["tasks"].pop(i)
                 self.storage.save_data(self.data)
                 print(f"🗑️ Deleted task '{deleted['title']}'")
                 return
-        print("❌ Task not found.")
+        print("❌ Task not found or does not belong to current user.")
 
     @log_action
     def logout(self):
