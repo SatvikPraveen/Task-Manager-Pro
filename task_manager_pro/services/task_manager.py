@@ -8,12 +8,12 @@ Uses decorators for logging, JSON/DB storage interface, and optional email remin
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from task_manager_pro.models.task import Task
 from task_manager_pro.models.user import User
 from task_manager_pro.storage.interface import StorageInterface
-from task_manager_pro.utils.decorators import log_action
+from task_manager_pro.utils.decorators import log_action, require_login
 from task_manager_pro.utils.emailer import send_email_reminder
 from task_manager_pro.utils.session import clear_session, load_session, save_session
 
@@ -34,6 +34,20 @@ class TaskManager:
             user_data = next((u for u in self.data["users"] if u["username"] == username), None)
             if user_data:
                 self.current_user = User(**user_data)
+
+    def _find_owned_task(self, task_id: str) -> Optional[dict[str, Any]]:
+        """
+        Returns the task with this ID if it belongs to the current user, else None.
+
+        Every command that reads or changes a single task goes through here, so a
+        user can never reach another user's task by guessing or knowing its ID.
+        """
+        if self.current_user is None:
+            return None
+        return next(
+            (t for t in self.data["tasks"] if t["id"] == task_id and t["user"] == self.current_user.username),
+            None,
+        )
 
     def _print_due_reminders(self) -> None:
         """
@@ -99,6 +113,7 @@ class TaskManager:
         self._print_due_reminders()
 
     @log_action
+    @require_login
     def add_task(self, title: str, desc: str, due: str):
         """
         Adds a new task for the current user.
@@ -108,10 +123,7 @@ class TaskManager:
             desc (str): Task description.
             due (str): Due date in 'YYYY-MM-DD'.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
-            return
-
+        assert self.current_user is not None  # guaranteed by @require_login
         task = Task(title, desc, due)
         task.id = uuid.uuid4().hex
         task_dict = task.to_dict()
@@ -124,6 +136,7 @@ class TaskManager:
         print(f"🆔 Task ID: {task.id}")
 
     @log_action
+    @require_login
     def update_task(
         self, task_id: str, title: Optional[str] = None, desc: Optional[str] = None, due: Optional[str] = None
     ):
@@ -136,25 +149,22 @@ class TaskManager:
             desc (Optional[str]): New description.
             due (Optional[str]): New due date.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
+        task = self._find_owned_task(task_id)
+        if task is None:
+            print("❌ Task not found or does not belong to current user.")
             return
 
-        for task in self.data["tasks"]:
-            if task["id"] == task_id and task["user"] == self.current_user.username:
-                if title:
-                    task["title"] = title
-                if desc:
-                    task["description"] = desc
-                if due:
-                    task["due_date"] = due
-                self.storage.save_data(self.data)
-                print(f"🔄 Task '{task_id}' updated successfully.")
-                return
-
-        print("❌ Task not found or does not belong to current user.")
+        if title:
+            task["title"] = title
+        if desc:
+            task["description"] = desc
+        if due:
+            task["due_date"] = due
+        self.storage.save_data(self.data)
+        print(f"🔄 Task '{task_id}' updated successfully.")
 
     @log_action
+    @require_login
     def mark_task_complete(self, task_id: str):
         """
         Marks a task as completed.
@@ -162,19 +172,17 @@ class TaskManager:
         Args:
             task_id (str): Unique task identifier.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
+        task = self._find_owned_task(task_id)
+        if task is None:
+            print("❌ Task not found or does not belong to current user.")
             return
 
-        for task in self.data["tasks"]:
-            if task["id"] == task_id and task["user"] == self.current_user.username:
-                task["completed"] = True
-                self.storage.save_data(self.data)
-                print(f"✅ Task '{task['title']}' marked as completed.")
-                return
-        print("❌ Task not found or does not belong to current user.")
+        task["completed"] = True
+        self.storage.save_data(self.data)
+        print(f"✅ Task '{task['title']}' marked as completed.")
 
     @log_action
+    @require_login
     def list_tasks(self, filter_status: str, verbose: bool = False, summary: bool = False):
         """
         Lists tasks based on filter and verbosity settings.
@@ -184,9 +192,8 @@ class TaskManager:
             verbose (bool): Show description for each task.
             summary (bool): Show overall task count breakdown.
         """
-        tasks = self.data["tasks"]
-        if self.current_user:
-            tasks = [t for t in tasks if t["user"] == self.current_user.username]
+        assert self.current_user is not None  # guaranteed by @require_login
+        tasks = [t for t in self.data["tasks"] if t["user"] == self.current_user.username]
 
         if filter_status == "completed":
             tasks = [t for t in tasks if t["completed"]]
@@ -211,6 +218,7 @@ class TaskManager:
         self._print_due_reminders()
 
     @log_action
+    @require_login
     def delete_task(self, task_id: str):
         """
         Deletes a task by ID.
@@ -218,17 +226,14 @@ class TaskManager:
         Args:
             task_id (str): Unique task identifier.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
+        task = self._find_owned_task(task_id)
+        if task is None:
+            print("❌ Task not found or does not belong to current user.")
             return
 
-        for i, task in enumerate(self.data["tasks"]):
-            if task["id"] == task_id and task["user"] == self.current_user.username:
-                deleted = self.data["tasks"].pop(i)
-                self.storage.save_data(self.data)
-                print(f"🗑️ Deleted task '{deleted['title']}'")
-                return
-        print("❌ Task not found or does not belong to current user.")
+        self.data["tasks"].remove(task)
+        self.storage.save_data(self.data)
+        print(f"🗑️ Deleted task '{task['title']}'")
 
     @log_action
     def logout(self):
@@ -243,25 +248,21 @@ class TaskManager:
             print("⚠️ No user is currently logged in.")
 
     @log_action
+    @require_login
     def send_due_reminders(self):
         """
         Triggers due task reminder check and optional email dispatch.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
-            return
         self._print_due_reminders()
 
     @log_action
+    @require_login
     def toggle_email_reminders(self):
         """
         Toggles email reminder setting for the current user.
         Also updates the setting in persistent storage.
         """
-        if not self.current_user:
-            print("❌ Please login first.")
-            return
-
+        assert self.current_user is not None  # guaranteed by @require_login
         updated_value = self.current_user.toggle_email_reminders()
         print(f"🔧 Email reminders {'enabled' if updated_value else 'disabled'}.")
 
