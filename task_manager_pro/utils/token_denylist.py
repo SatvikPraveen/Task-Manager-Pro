@@ -9,7 +9,7 @@ natural expiry. Entries only need to live until the token's ``exp``, after
 which the signature check rejects it anyway, so both backends store a TTL.
 
 * :class:`InMemoryTokenDenylist` – single-process, zero dependencies.
-* :class:`RedisTokenDenylist`    – shared between replicas (``SET ... PX``).
+* :class:`RedisTokenDenylist`    – shared between replicas (``SET ... PX NX``).
 """
 
 from __future__ import annotations
@@ -23,8 +23,13 @@ Clock = Callable[[], float]
 
 
 class TokenDenylist(Protocol):
-    def revoke(self, jti: str, ttl_seconds: float) -> None:
-        """Mark ``jti`` as revoked for ``ttl_seconds`` (no-op if ``ttl_seconds <= 0``)."""
+    def revoke(self, jti: str, ttl_seconds: float) -> bool:
+        """
+        Mark ``jti`` as revoked for ``ttl_seconds`` (no-op if ``ttl_seconds <= 0``).
+
+        Returns ``True`` only for the call that actually revoked it, atomically, so
+        concurrent callers presenting the same token cannot all succeed.
+        """
 
     def is_revoked(self, jti: str) -> bool: ...
 
@@ -39,12 +44,17 @@ class InMemoryTokenDenylist:
         self._ops = 0
         self._prune_every = prune_every
 
-    def revoke(self, jti: str, ttl_seconds: float) -> None:
+    def revoke(self, jti: str, ttl_seconds: float) -> bool:
         if ttl_seconds <= 0:
-            return
+            return False
         with self._lock:
-            self._expiry[jti] = self._clock() + ttl_seconds
+            now = self._clock()
+            expiry = self._expiry.get(jti)
+            if expiry is not None and expiry > now:
+                return False
+            self._expiry[jti] = now + ttl_seconds
             self._maybe_prune()
+            return True
 
     def is_revoked(self, jti: str) -> bool:
         with self._lock:
@@ -76,11 +86,11 @@ class RedisTokenDenylist:
         self._client = client
         self._prefix = prefix
 
-    def revoke(self, jti: str, ttl_seconds: float) -> None:
+    def revoke(self, jti: str, ttl_seconds: float) -> bool:
         ttl_ms = int(ttl_seconds * 1000)
         if ttl_ms <= 0:
-            return
-        self._client.set(self._prefix + jti, "1", px=ttl_ms)
+            return False
+        return bool(self._client.set(self._prefix + jti, "1", px=ttl_ms, nx=True))
 
     def is_revoked(self, jti: str) -> bool:
         return bool(self._client.exists(self._prefix + jti))

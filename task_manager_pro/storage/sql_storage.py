@@ -20,6 +20,7 @@ from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from task_manager_pro.storage.database import SessionLocal, engine, init_db
@@ -93,7 +94,11 @@ class SQLStorage(StorageInterface):
                 raise ValueError(f"User '{username}' already exists")
             user = UserModel(username=username, password_hash=hash_password(password), email=email)
             db.add(user)
-            db.flush()
+            try:
+                db.flush()
+            except IntegrityError as exc:
+                # A concurrent registration took the name between the check above and the insert.
+                raise ValueError(f"User '{username}' already exists") from exc
             db.refresh(user)
             db.expunge(user)
             return user
@@ -213,8 +218,12 @@ class SQLStorage(StorageInterface):
         if due_after is not None:
             criteria.append(TaskModel.due_date >= _to_datetime(due_after))
         if search:
-            pattern = f"%{search.strip()}%"
-            criteria.append(or_(TaskModel.title.ilike(pattern), TaskModel.description.ilike(pattern)))
+            # Escape LIKE wildcards so "50%" or "_" search for those literal characters.
+            term = search.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            pattern = f"%{term}%"
+            criteria.append(
+                or_(TaskModel.title.ilike(pattern, escape="\\"), TaskModel.description.ilike(pattern, escape="\\"))
+            )
 
         order = column.desc() if sort_desc else column.asc()
         with self._session() as db:

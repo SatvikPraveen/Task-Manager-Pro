@@ -36,7 +36,7 @@ async def update_current_user(
     storage: SQLStorage = Depends(get_storage),
 ) -> UserResponse:
     """Update email and/or reminder preference."""
-    changes = user_data.model_dump(exclude_unset=True, exclude_none=True)
+    changes = user_data.model_dump(exclude_unset=True)
     updated = storage.update_user(user_id, **changes)
     if not updated:
         raise _NOT_FOUND

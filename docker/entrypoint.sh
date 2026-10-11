@@ -12,7 +12,7 @@ case "${1:-serve}" in
     echo "Starting API on ${HOST:-0.0.0.0}:${PORT:-8000}"
     exec uvicorn task_manager_pro.api.main:app \
       --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}" \
-      --workers "${WEB_CONCURRENCY:-1}" --proxy-headers --forwarded-allow-ips="*"
+      --workers "${WEB_CONCURRENCY:-1}" --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-127.0.0.1}"
     ;;
   migrate)
     exec alembic upgrade head

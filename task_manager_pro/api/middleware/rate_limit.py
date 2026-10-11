@@ -149,12 +149,14 @@ class RedisSlidingWindowRateLimiter:
 
 
 def _client_key(scope: Scope) -> str:
-    """Prefer the first X-Forwarded-For hop; fall back to the socket peer."""
-    for name, value in scope.get("headers", []):
-        if name == b"x-forwarded-for":
-            first = value.decode("latin-1").split(",")[0].strip()
-            if first:
-                return first
+    """
+    Key on the peer address uvicorn resolved for this connection.
+
+    ``X-Forwarded-For`` is deliberately not read here: the client writes it, so
+    keying on it would let anyone pick a fresh key per request. Behind a reverse
+    proxy, uvicorn's ``--forwarded-allow-ips`` (``FORWARDED_ALLOW_IPS`` in the
+    container) rewrites ``scope["client"]`` from the header for trusted proxies only.
+    """
     client = scope.get("client")
     return client[0] if client else "unknown"
 

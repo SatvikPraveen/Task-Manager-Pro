@@ -30,18 +30,33 @@ ACCESS_TOKEN_TYPE = "access"
 # cost 12 from a random password that is not retained anywhere.
 _DUMMY_HASH = "$2b$12$pqAQgiQNyc54kVPCDImXe.QsYDOLlwDQRNc5AqgabyNZtAL0LtRTi"
 
+# bcrypt only reads the first 72 bytes of a password; bcrypt>=5 raises on longer input.
+BCRYPT_MAX_BYTES = 72
+
+
+def _bcrypt_input(password: str) -> bytes:
+    """
+    Encode ``password`` for bcrypt, cut to the bytes bcrypt actually uses.
+
+    Registration rejects longer passwords, so this only matters at login: an
+    over-long attempt must not raise (that would be a 500 for unknown users only,
+    revealing which accounts exist), and accounts created under bcrypt<5, which
+    truncated silently, must keep working.
+    """
+    return password.encode("utf-8")[:BCRYPT_MAX_BYTES]
+
 
 def hash_password(password: str) -> str:
     """Hash ``password`` with bcrypt at the configured work factor."""
     rounds = get_settings().bcrypt_rounds
     salt = bcrypt.gensalt(rounds=rounds)
-    return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
+    return bcrypt.hashpw(_bcrypt_input(password), salt).decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Return ``True`` if ``plain_password`` matches the bcrypt ``hashed_password``."""
     try:
-        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+        return bcrypt.checkpw(_bcrypt_input(plain_password), hashed_password.encode("utf-8"))
     except ValueError:
         # Malformed hash stored in the database; treat as non-matching.
         return False
@@ -54,7 +69,7 @@ def verify_password_dummy(plain_password: str) -> None:
     Called on login when the username is unknown so that the response time does
     not reveal whether an account exists (timing-based user enumeration).
     """
-    bcrypt.checkpw(plain_password.encode("utf-8"), _DUMMY_HASH.encode("utf-8"))
+    bcrypt.checkpw(_bcrypt_input(plain_password), _DUMMY_HASH.encode("utf-8"))
 
 
 def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
