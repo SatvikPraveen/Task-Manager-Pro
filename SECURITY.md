@@ -15,7 +15,7 @@ fixes are released as patch versions and credited in `CHANGELOG.md`.
 | Authentication | HS256 JWT with `sub`, `iat`, `exp`, `jti`, `type` claims; `exp`/`sub` required on decode |
 | Secret hygiene | `SECRET_KEY` must be set, non-placeholder, ≥ 32 chars, or the process refuses to start |
 | User enumeration | Constant-time login (dummy bcrypt verify on unknown usernames), identical error messages |
-| Brute force | Sliding-window rate limit on login/register with `429` + `Retry-After` |
+| Brute force | Sliding-window rate limit on login/register with `429` + `Retry-After`, keyed on the connection's peer address. `X-Forwarded-For` is honoured only from proxies listed in `FORWARDED_ALLOW_IPS` (default `127.0.0.1`) |
 | Token leakage | Refresh reads the bearer header, never a query parameter; refresh rotates (old `jti` revoked) and `logout` revokes immediately |
 | Browser hardening | `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cache-Control: no-store`, CSP `default-src 'none'` |
 | Error handling | Unhandled exceptions become a generic JSON 500 with a request ID; no stack traces |

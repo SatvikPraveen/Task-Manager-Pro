@@ -87,6 +87,7 @@ docker compose up --build        # API on :8000 (PostgreSQL + Redis), Prometheus
 | `GET` / `PUT` / `DELETE` | `/api/tasks/{id}` | Read / partial update / delete (404 for other users' tasks) |
 | `GET` / `PUT` | `/api/users/me` | Profile |
 | `POST` | `/api/users/me/toggle-reminders` | Flip email reminders |
+| `PUT` | `/api/users/me/password` | Change password (`current_password`, `new_password`) |
 | `GET` | `/health`, `/metrics`, `/` | Readiness (DB probe), Prometheus, info |
 
 Interactive docs: `/api/docs` (Swagger) and `/api/redoc`. OpenAPI: `/api/openapi.json`.

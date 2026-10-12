@@ -2,6 +2,7 @@
 # Container entrypoint.
 #   serve            → alembic upgrade head, then uvicorn (default)
 #   migrate          → alembic upgrade head only
+#   task-manager ... → the JSON CLI, run from /app/data (writable; /app is not)
 #   anything else    → executed verbatim (e.g. `task-manager --help`)
 set -eu
 
@@ -12,10 +13,15 @@ case "${1:-serve}" in
     echo "Starting API on ${HOST:-0.0.0.0}:${PORT:-8000}"
     exec uvicorn task_manager_pro.api.main:app \
       --host "${HOST:-0.0.0.0}" --port "${PORT:-8000}" \
-      --workers "${WEB_CONCURRENCY:-1}" --proxy-headers --forwarded-allow-ips="*"
+      --workers "${WEB_CONCURRENCY:-1}" --proxy-headers --forwarded-allow-ips="${FORWARDED_ALLOW_IPS:-127.0.0.1}"
     ;;
   migrate)
     exec alembic upgrade head
+    ;;
+  task-manager)
+    # The CLI keeps tasks.json and session.json in the working directory.
+    cd /app/data
+    exec "$@"
     ;;
   *)
     exec "$@"

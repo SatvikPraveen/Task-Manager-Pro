@@ -178,6 +178,25 @@ def test_complete_and_delete_require_login(manager, capsys):
     assert manager.data["tasks"][0]["completed"] is False
 
 
+def test_list_tasks_requires_login_and_hides_other_users(manager, capsys):
+    manager.login("alice", email="alice@example.com")
+    manager.add_task("Alice secret", "private", "2030-01-01")
+    manager.login("bob", email="bob@example.com")
+    manager.add_task("Bob chore", "mine", "2030-01-01")
+
+    capsys.readouterr()
+    manager.list_tasks("all", verbose=True)
+    out = capsys.readouterr().out
+    assert "Bob chore" in out and "Alice secret" not in out
+
+    manager.logout()
+    capsys.readouterr()
+    manager.list_tasks("all", verbose=True)
+    out = capsys.readouterr().out
+    assert "Please login first" in out
+    assert "Alice secret" not in out and "Bob chore" not in out
+
+
 def test_list_tasks_empty_and_reminders_for_due_tasks(manager, capsys):
     manager.login("alice", email="alice@example.com")
     manager.list_tasks("all")

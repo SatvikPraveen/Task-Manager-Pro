@@ -51,7 +51,8 @@ class Settings(BaseSettings):
 
     # --- Security --------------------------------------------------------
     secret_key: SecretStr
-    jwt_algorithm: str = "HS256"
+    # Tokens are signed with SECRET_KEY, so only the HMAC algorithms make sense.
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: int = Field(30, ge=1)
     # bcrypt work factor. 12 is the production default; tests lower it to 4
     # so the suite is not dominated by password hashing.

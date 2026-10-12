@@ -7,12 +7,20 @@ Pydantic v2 request/response models for authentication and user profiles.
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 _USERNAME_RE = re.compile(r"^[A-Za-z0-9_]+$")
+
+
+def _check_bcrypt_length(value: str) -> str:
+    # bcrypt ignores everything past 72 bytes, so a longer password would
+    # silently be weaker than the user thinks. Multi-byte characters count extra.
+    if len(value.encode("utf-8")) > 72:
+        raise ValueError("Password must be at most 72 bytes (UTF-8)")
+    return value
 
 
 class UserRegister(BaseModel):
@@ -29,6 +37,11 @@ class UserRegister(BaseModel):
             raise ValueError("Username must contain only alphanumeric characters and underscores")
         return value
 
+    @field_validator("password")
+    @classmethod
+    def _password_fits_bcrypt(cls, value: str) -> str:
+        return _check_bcrypt_length(value)
+
 
 class UserLogin(BaseModel):
     """Login payload."""
@@ -37,11 +50,29 @@ class UserLogin(BaseModel):
     password: str = Field(..., max_length=255)
 
 
+class PasswordChange(BaseModel):
+    """Replace the caller's password; the current one must be supplied."""
+
+    current_password: str = Field(..., max_length=255)
+    new_password: str = Field(..., min_length=8, max_length=255, description="New password (min 8 chars)")
+
+    @field_validator("new_password")
+    @classmethod
+    def _new_password_fits_bcrypt(cls, value: str) -> str:
+        return _check_bcrypt_length(value)
+
+
 class UserUpdate(BaseModel):
-    """Profile update; every field optional."""
+    """Profile update; every field optional. Send ``"email": null`` to remove the email."""
 
     email: Optional[EmailStr] = None
     email_reminders_enabled: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def _reminders_flag_not_null(self) -> UserUpdate:
+        if "email_reminders_enabled" in self.model_fields_set and self.email_reminders_enabled is None:
+            raise ValueError("email_reminders_enabled cannot be null")
+        return self
 
 
 class UserResponse(BaseModel):
@@ -55,6 +86,12 @@ class UserResponse(BaseModel):
     email_reminders_enabled: bool
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("created_at", "updated_at", mode="after")
+    @classmethod
+    def _assume_utc(cls, value: datetime) -> datetime:
+        # SQLite drops the offset on read; every stored timestamp is UTC.
+        return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
     @classmethod
     def from_model(cls, user: Any) -> UserResponse:

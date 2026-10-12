@@ -47,7 +47,7 @@ def require_login(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         if not self.current_user:
-            print("❌ Please login to perform this action.")
+            print("❌ Please login first.")
             return
         return func(self, *args, **kwargs)
 

@@ -43,12 +43,13 @@ def _issue_token(user_id: str) -> tuple[str, int]:
     return token, minutes * 60
 
 
-def _revoke(payload: dict[str, Any], denylist: TokenDenylist) -> None:
-    """Deny the token's jti for the remainder of its lifetime."""
+def _revoke(payload: dict[str, Any], denylist: TokenDenylist) -> bool:
+    """Deny the token's jti for the remainder of its lifetime; ``True`` if this call revoked it."""
     jti = payload.get("jti")
     exp = payload.get("exp")
     if isinstance(jti, str) and isinstance(exp, (int, float)):
-        denylist.revoke(jti, float(exp) - time.time())
+        return denylist.revoke(jti, float(exp) - time.time())
+    return False
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -98,8 +99,15 @@ async def refresh_token(
     user_id = str(payload["sub"])
     if storage.get_user(user_id) is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User no longer exists")
+    # Revoke before issuing, and only issue if this request won the revocation:
+    # parallel refreshes of one (possibly leaked) token must yield one new token.
+    if not _revoke(payload, denylist):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token, expires_in = _issue_token(user_id)
-    _revoke(payload, denylist)
     return TokenResponse(access_token=token, token_type="bearer", expires_in=expires_in)
 
 

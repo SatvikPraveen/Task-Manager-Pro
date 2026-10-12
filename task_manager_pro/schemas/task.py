@@ -9,11 +9,11 @@ them as UTC-midnight datetimes, and ``TaskResponse`` converts back on output.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class TaskPriority(str, Enum):
@@ -52,7 +52,12 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    """Partial update; every field is optional."""
+    """
+    Partial update; every field is optional.
+
+    Omitting a field leaves it unchanged. ``description`` may be sent as ``null``
+    to clear it; the other fields are required columns and reject ``null``.
+    """
 
     title: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = Field(None, max_length=2000)
@@ -69,6 +74,20 @@ class TaskUpdate(BaseModel):
         if not value:
             raise ValueError("title must not be blank")
         return value
+
+    @model_validator(mode="after")
+    def _reject_null_required_fields(self) -> TaskUpdate:
+        for name in ("title", "due_date", "priority", "completed"):
+            if name in self.model_fields_set and getattr(self, name) is None:
+                raise ValueError(f"{name} cannot be null")
+        return self
+
+
+def _as_utc(value: Optional[datetime]) -> Optional[datetime]:
+    """Attach UTC to naive datetimes (SQLite drops the offset); leave aware ones alone."""
+    if value is not None and value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
 
 
 class TaskResponse(BaseModel):
@@ -90,8 +109,18 @@ class TaskResponse(BaseModel):
     @classmethod
     def _datetime_to_date(cls, value: Any) -> Any:
         if isinstance(value, datetime):
+            # Due dates are stored as UTC midnight. PostgreSQL hands timestamptz back in
+            # the session time zone, so convert first or a non-UTC server shifts the day.
+            if value.tzinfo is not None:
+                value = value.astimezone(timezone.utc)
             return value.date()
         return value
+
+    @field_validator("created_at", "updated_at", "completed_at", mode="after")
+    @classmethod
+    def _assume_utc(cls, value: Optional[datetime]) -> Optional[datetime]:
+        # SQLite drops the offset on read; every stored timestamp is UTC.
+        return _as_utc(value)
 
     @classmethod
     def from_model(cls, task: Any) -> TaskResponse:

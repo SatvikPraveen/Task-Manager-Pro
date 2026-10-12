@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
 🚀 Task Manager PRO - API Demo Script
-Demonstrates all major API features with live testing
+Demonstrates all major API features with live testing.
+Needs the dev extras (`pip install -e ".[dev]"`, for httpx) and a running API.
 """
 
 import json
 import time
 from datetime import datetime, timedelta
 
-import requests
+import httpx
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -32,21 +33,21 @@ def main():
 
     # 1. Health Check
     console.print("\n[bold yellow]═══ 1. Health Check ═══[/bold yellow]")
-    response = requests.get(f"{BASE_URL}/health")
+    response = httpx.get(f"{BASE_URL}/health")
     print_response("Health Check", response)
     time.sleep(1)
 
     # 2. Register User
     console.print("\n[bold yellow]═══ 2. Register New User ═══[/bold yellow]")
     user_data = {"username": "demo_user", "email": "demo@taskmanager.com", "password": "SecurePass123!"}
-    response = requests.post(f"{BASE_URL}/api/auth/register", json=user_data)
+    response = httpx.post(f"{BASE_URL}/api/auth/register", json=user_data)
     print_response("User Registration", response)
     time.sleep(1)
 
     # 3. Login
     console.print("\n[bold yellow]═══ 3. Login & Get Token ═══[/bold yellow]")
     login_data = {"username": "demo_user", "password": "SecurePass123!"}
-    response = requests.post(f"{BASE_URL}/api/auth/login", json=login_data)
+    response = httpx.post(f"{BASE_URL}/api/auth/login", json=login_data)
     print_response("User Login", response)
 
     if response.status_code != 200:
@@ -83,7 +84,7 @@ def main():
 
     task_ids = []
     for task in tasks:
-        response = requests.post(f"{BASE_URL}/api/tasks", json=task, headers=headers)
+        response = httpx.post(f"{BASE_URL}/api/tasks", json=task, headers=headers)
         if response.status_code == 201:
             task_id = response.json()["id"]
             task_ids.append(task_id)
@@ -94,10 +95,10 @@ def main():
 
     # 5. List All Tasks
     console.print("\n[bold yellow]═══ 5. List All Tasks ═══[/bold yellow]")
-    response = requests.get(f"{BASE_URL}/api/tasks", headers=headers)
+    response = httpx.get(f"{BASE_URL}/api/tasks", headers=headers)
 
     if response.status_code == 200:
-        tasks_list = response.json()
+        tasks_list = response.json()["tasks"]  # TaskListResponse: {total, tasks, page, ...}
 
         table = Table(title="📋 Your Tasks")
         table.add_column("ID", style="cyan")
@@ -116,7 +117,7 @@ def main():
     # 6. Get Single Task
     if task_ids:
         console.print("\n[bold yellow]═══ 6. Get Task Details ═══[/bold yellow]")
-        response = requests.get(f"{BASE_URL}/api/tasks/{task_ids[0]}", headers=headers)
+        response = httpx.get(f"{BASE_URL}/api/tasks/{task_ids[0]}", headers=headers)
         print_response(f"Task Details (ID: {task_ids[0]})", response)
         time.sleep(1)
 
@@ -124,25 +125,25 @@ def main():
     if task_ids:
         console.print("\n[bold yellow]═══ 7. Update Task ═══[/bold yellow]")
         update_data = {"title": "Complete API Documentation (UPDATED)", "completed": True}
-        response = requests.put(f"{BASE_URL}/api/tasks/{task_ids[0]}", json=update_data, headers=headers)
+        response = httpx.put(f"{BASE_URL}/api/tasks/{task_ids[0]}", json=update_data, headers=headers)
         print_response("Task Update", response)
         time.sleep(1)
 
     # 8. Get Current User
     console.print("\n[bold yellow]═══ 8. Get Current User Info ═══[/bold yellow]")
-    response = requests.get(f"{BASE_URL}/api/users/me", headers=headers)
+    response = httpx.get(f"{BASE_URL}/api/users/me", headers=headers)
     print_response("Current User", response)
     time.sleep(1)
 
     # 9. Toggle Email Reminders
     console.print("\n[bold yellow]═══ 9. Toggle Email Reminders ═══[/bold yellow]")
-    response = requests.post(f"{BASE_URL}/api/users/me/toggle-reminders", headers=headers)
+    response = httpx.post(f"{BASE_URL}/api/users/me/toggle-reminders", headers=headers)
     print_response("Toggle Email Reminders", response)
     time.sleep(1)
 
     # 10. Pagination Test
     console.print("\n[bold yellow]═══ 10. Test Pagination ═══[/bold yellow]")
-    response = requests.get(f"{BASE_URL}/api/tasks?skip=0&limit=2", headers=headers)
+    response = httpx.get(f"{BASE_URL}/api/tasks?skip=0&limit=2", headers=headers)
     print_response("Paginated Tasks (limit=2)", response)
     time.sleep(1)
 
@@ -150,13 +151,13 @@ def main():
     if len(task_ids) > 1:
         console.print("\n[bold yellow]═══ 11. Delete Task ═══[/bold yellow]")
         delete_id = task_ids[-1]
-        response = requests.delete(f"{BASE_URL}/api/tasks/{delete_id}", headers=headers)
+        response = httpx.delete(f"{BASE_URL}/api/tasks/{delete_id}", headers=headers)
         print_response(f"Delete Task (ID: {delete_id})", response)
         time.sleep(1)
 
     # 12. Try Unauthorized Access
     console.print("\n[bold yellow]═══ 12. Test Unauthorized Access ═══[/bold yellow]")
-    response = requests.get(f"{BASE_URL}/api/tasks")  # No token
+    response = httpx.get(f"{BASE_URL}/api/tasks")  # No token
     print_response("Unauthorized Access (no token)", response)
     time.sleep(1)
 
@@ -179,7 +180,7 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except requests.exceptions.ConnectionError:
+    except httpx.ConnectError:
         console.print("\n[bold red]❌ Error: Could not connect to API server![/bold red]")
         console.print("\n[yellow]Make sure the server is running:[/yellow]")
         console.print("  uvicorn task_manager_pro.api.main:app --reload\n")

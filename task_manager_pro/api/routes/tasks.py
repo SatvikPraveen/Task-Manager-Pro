@@ -181,7 +181,7 @@ async def update_task(
     """Partially update one of the caller's tasks."""
     if not storage.get_user_task(user_id, task_id):
         raise _NOT_FOUND
-    changes = task_data.model_dump(exclude_unset=True, exclude_none=True)
+    changes = task_data.model_dump(exclude_unset=True)
     if "priority" in changes:
         changes["priority"] = TaskPriority(changes["priority"]).value
     updated = storage.update_task(task_id, **changes)

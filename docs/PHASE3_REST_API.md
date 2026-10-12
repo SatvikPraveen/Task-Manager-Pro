@@ -33,7 +33,8 @@ FastAPI Application
 ├── Users Routes (/api/users)
 │   ├── GET /me             - Get user profile
 │   ├── PUT /me             - Update profile
-│   └── POST /me/toggle-reminders - Toggle reminders
+│   ├── POST /me/toggle-reminders - Toggle reminders
+│   └── PUT /me/password - Change password
 └── Health & Info
     ├── GET /              - API info
     └── GET /health        - Health check

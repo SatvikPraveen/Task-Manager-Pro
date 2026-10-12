@@ -126,12 +126,10 @@ def test_rate_limit_returns_429_with_retry_after(mini_client):
     assert mini_client.get("/items/1").status_code == 200
 
 
-def test_rate_limit_keys_on_forwarded_for(mini_client):
-    for ip in ("10.0.0.1", "10.0.0.2"):
-        for _ in range(2):
-            assert mini_client.post("/login", headers={"X-Forwarded-For": f"{ip}, 1.2.3.4"}).status_code == 200
-    assert mini_client.post("/login", headers={"X-Forwarded-For": "10.0.0.1"}).status_code == 429
-    assert mini_client.post("/login", headers={"X-Forwarded-For": "10.0.0.3"}).status_code == 200
+def test_rate_limit_ignores_client_supplied_forwarded_for(mini_client):
+    """A caller must not get a fresh budget by inventing a new X-Forwarded-For per request."""
+    statuses = [mini_client.post("/login", headers={"X-Forwarded-For": f"10.0.0.{i}"}).status_code for i in range(1, 6)]
+    assert statuses == [200, 200, 429, 429, 429]  # budget is 2 per client
 
 
 def test_metrics_use_route_template_not_concrete_path(mini_client):
